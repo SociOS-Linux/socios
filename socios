@@ -1,0 +1,54 @@
+#!/bin/bash
+export Cellar=$(brew --cellar socios)
+
+#Installation of VirtualBox
+
+function check {
+	source $Cellar/*/lib/install_virtualbox.scpt
+}
+
+#Building VirtualBox_VM
+
+function createvm {
+	source $Cellar/*/lib/create_vm.sh
+}
+
+#Display Help_Menu
+
+function help {
+	echo "Socios - Linux with your Mac."
+	echo "Usage: socios [options...]"
+	echo
+	echo "Valid options are:"
+	echo "--build        Create the virtual machine in VirtualBox"
+	echo "--check        Check the environment to install Socios"
+	echo "--help         Print this Help menu"
+	echo "--version      Print the current version"	
+}
+
+#Version of Socios formula
+
+function version {
+	tag=$(brew info socios | awk '/stable/ {print $3}' | sed 's/^/v/')
+	echo "$tag"
+}
+
+########################################
+#Socios options passing with Arguments #
+########################################
+
+for arg in "$@"; do
+  if [[ "$arg" = --check ]]; then
+	check
+  fi
+  if [[ "$arg" = --build ]]; then
+	createvm
+  fi
+  if [[ "$arg" = --help ]]; then
+	help
+  fi
+  if [[ "$arg" = --version ]]; then
+	version
+  fi
+done
+########################################
