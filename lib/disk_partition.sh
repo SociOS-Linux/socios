@@ -1,8 +1,10 @@
+#!/bin/bash
 #Automated script for create ing partition from APFS to Linux.
 #Default we are created for 30 Gb for New virtualbox VM.
 
 target_disk=$(diskutil list | awk '/Apple_APFS/ {print $7}')
 
+echo "$target_disk"
 default_disk=$target_disk
 default_size='40g'
 
@@ -14,17 +16,16 @@ case "$choice" in
 	* ) { echo "Invalid option. Plesase select the correct option."; exit 1; };;
 esac
 
-if [ "$target_disk" == 1 ]
+if [ $Input == 1 ]
 then
-  echo "Resizing the APFS container for partition $default_disk $default_size"
-  diskutil apfs resizeContainer $default_disk $default_size
-fi
-
-if [ "$target_disk" == 0 ]
-then
-  read -P "Provide the disk space want to use for Linux OS:" "$disk"
-  read -P "Provide the disk space want to allocate for Linux OS in GB(e.g:30g):" "$size"
-  diskutil apfs resizeContainer "$disk" "$size"
+    echo "Resizing the APFS container for partition $default_disk $default_size"
+    diskutil apfs resizeContainer $default_disk $default_size
+else
+    diskutil list
+    echo "Provide the disk space want to use for the above list"
+    read -p "Provide the disk space want to use for Linux OS" disk_input
+    read -p "Provide the disk space want to allocate for Linux OS in GB(e.g:30g)" size_input
+    diskutil apfs resizeContainer "$disk_input" "$size_input"
 fi
 
 disk=$(/dev/disk0)
