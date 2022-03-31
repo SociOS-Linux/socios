@@ -22,13 +22,15 @@ then
     diskutil apfs resizeContainer $default_disk $default_size
 else
     diskutil list
-    echo "Provide the disk space want to use for the above list"
-    read -p "Provide the disk space want to use for Linux OS" disk_input
-    read -p "Provide the disk space want to allocate for Linux OS in GB(e.g:30g)" size_input
+    echo "Provide the disk space want to use for the above list."
+    read -p "Provide the disk space want to use for Linux OS:  " disk_input
+    read -p "Provide the disk space want to allocate for Linux OS in GB(e.g:30g):  " size_input
     diskutil apfs resizeContainer "$disk_input" "$size_input"
 fi
 
-disk=$(/dev/disk0)
+disk=$(/dev/"$disk_input")
+
+sudo umount "$disk"
 
 sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF | gdisk $disk
   n # new partition
