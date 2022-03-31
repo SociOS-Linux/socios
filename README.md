@@ -3,7 +3,7 @@
 The Homebrew tap/formula process is the combination of two Git hub repos. The first git hub repo contains the functionality package (socios) and the second repo has the homebrew formula with the ruby file (homebrew-socios).
 ### Homebrew Directory list
 The homebrew package uses the below folder path to configuration.  
-**Formula** ñ The package definition uses the path
+**Formula** ‚Äì The package definition uses the path
 `/usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/socios.rb`
 
 **Keg** - The installation prefix of a Formula uses the path 
@@ -24,7 +24,7 @@ The homebrew package uses the below folder path to configuration.
         git tag v1.0.0
         git push origin v1.0.0
 
-- Create the second repository for the ruby formula file in git called ìhomebrew-sociosî. Then clone that repo in the local computer using the git clone command.
+- Create the second repository for the ruby formula file in git called ‚Äúhomebrew-socios‚Äù. Then clone that repo in the local computer using the git clone command.
 - Switch into that new repo to create the formula 
 - Then, we need to copy the compressed tar.gz file link from the git hub release and create the ruby file formula by running the below command in terminal
 
@@ -34,7 +34,7 @@ The homebrew package uses the below folder path to configuration.
 - Copy the default formula to the new repository and open it with VI editor to add the below lines in it as shown in the picture.
     1. bin.install "socios"
     2. prefix.install Dir["lib"]
-    3. 
+
 - Then upload this file into the new git hub repository using the below commands
 
         git add .
@@ -51,12 +51,12 @@ The homebrew package uses the below folder path to configuration.
 
 ## Socios Package
 - Socios package contains the below files and directory
-    1. ***Socios*** ñ root bin command file.
-    2. ***Lib*** ñ directory contains with below script files
-    3. ***Install_virtualbox.scpt*** ñ this script file will be run by calling the check function
-    4. ***Image.sh*** ñ this script file is included in the above file as source
-    5. ***Create_vm.sh*** ñ this file will be run by calling the build function
-    6. ***Csrutil_status.sh*** ñ this file detect the SIP status and run it accordingly
+    1. ***Socios*** ‚Äì root bin command file.
+    2. ***Lib*** ‚Äì directory contains with below script files
+    3. ***Install_virtualbox.scpt*** ‚Äì this script file will be run by calling the check function
+    4. ***Image.sh*** ‚Äì this script file is included in the above file as source
+    5. ***Create_vm.sh*** ‚Äì this file will be run by calling the build function
+    6. ***Csrutil_status.sh*** ‚Äì this file detect the SIP status and run it accordingly
 
 ## Socios bin command file
 - This file contains the functions and arguments of socios such as build, check, help, and version. Currently, we have added 4 functions to this file.
@@ -74,9 +74,18 @@ The homebrew package uses the below folder path to configuration.
 - This script file helps us to detect the SIP protection status in the current Mac OS and run based on results accordingly.
     Generally, SIP security protection technology has been implemented in El captain and later versions. 
 
-    Some older version Mac OSís does not have SIP ñ continue the next script
-    SIP available and status is disabled ñ continue the next script
-    SIP available and status is enabled ñ exit and shows the message to disable it with reference link
+    Some older version Mac OS‚Äôs does not have SIP ‚Äì continue the next script
+    SIP available and status is disabled ‚Äì continue the next script
+    SIP available and status is enabled ‚Äì exit and shows the message to disable it with reference link
+
+### Script for partitioning 
+- The below script commands have been created to convert the APFS to a Linux partition. 
+- This script can be run after disabling the SIP protection. We will add this script with the socios package once testing is completed. 
+- In the script there are two methods avalable for doing the disk partition;
+    1. Using the default disk space utility Like selecting the default disk "disk0s2" and the default size of 40GB will be used on disk partition.
+    2. Other method is getting the disk input from the user by listing the available disk on the particular machine and get the custom disk sapce from the user input.
+
+
     
 
    
