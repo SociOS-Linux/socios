@@ -3,14 +3,6 @@ MACHINENAME="socios_vm_test"
 #Disk_location="/tmp/socios/$Server_name.vdi"
 #Image_file="/tmp/socios/ubuntu.iso"
 
-# Download ubuntu.iso
-if [ ! -f ./ubuntu.iso ]; then
-    echo "Started downloading ubuntu iso image"
-    wget https://releases.ubuntu.com/bionic/ubuntu-18.04.6-desktop-amd64.iso -O ubuntu.iso
-fi
-
-echo "Finished downloading ubuntu iso"
-
 #Creating virtual machine
 echo "Creating a $MACHINENAME virtual machine"
 vboxmanage createvm --name $MACHINENAME --ostype "Ubuntu_64" --register --basefolder `pwd`
