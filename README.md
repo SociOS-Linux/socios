@@ -42,7 +42,7 @@ The homebrew package uses the below folder path to configuration.
         git push -u origin main
 - Once completed the above procedures, we can able to download and use our socios packages by using the below commands.
 
-        brew tap Socios-linux/socios
+        brew tap SociOS-Linux/socios
         brew install Socios
 - Then we can check the functions of Socios using the below commands
 
