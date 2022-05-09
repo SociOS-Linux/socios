@@ -3,7 +3,7 @@ export Cellar=$(brew --cellar socios)
 
 #Installation of VirtualBox
 
-function init virtualbox {
+function init {
 	source $Cellar/*/lib/install_virtualbox.scpt
 }
 
@@ -15,7 +15,7 @@ function createvm {
 
 #Uninstalling VirtualBox_VM
 
-function purge virtualbox {
+function purge {
 	source $Cellar/*/lib/purge.sh
 }
 
@@ -45,7 +45,7 @@ function version {
 ########################################
 
 for arg in "$@"; do
-  if [[ "$arg" = init virtualbox ]]; then
+  if [[ "$arg" = --init ]]; then
 	init virtualbox
   fi
   if [[ "$arg" = --build ]]; then
@@ -57,7 +57,7 @@ for arg in "$@"; do
   if [[ "$arg" = --version ]]; then
 	version
   fi
-  if [[ "$arg" = purge virtualbox ]]; then
+  if [[ "$arg" = --purge ]]; then
 	purge
   fi
 done
