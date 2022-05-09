@@ -3,7 +3,7 @@ export Cellar=$(brew --cellar socios)
 
 #Installation of VirtualBox
 
-function check {
+function init virtualbox {
 	source $Cellar/*/lib/install_virtualbox.scpt
 }
 
@@ -11,6 +11,12 @@ function check {
 
 function createvm {
 	source $Cellar/*/lib/create_vm.sh
+}
+
+#Uninstalling VirtualBox_VM
+
+function purge virtualbox {
+	source $Cellar/*/lib/purge.sh
 }
 
 #Display Help_Menu
@@ -21,9 +27,10 @@ function help {
 	echo
 	echo "Valid options are:"
 	echo "--build        Create the virtual machine in VirtualBox"
-	echo "--check        Check the environment to install Socios"
+	echo "--init         Check the environment to install Socios"
 	echo "--help         Print this Help menu"
 	echo "--version      Print the current version"	
+	echo "--purge        Uninstall the Virtualbox and GDisk"
 }
 
 #Version of Socios formula
@@ -38,8 +45,8 @@ function version {
 ########################################
 
 for arg in "$@"; do
-  if [[ "$arg" = --check ]]; then
-	check
+  if [[ "$arg" = init virtualbox ]]; then
+	init virtualbox
   fi
   if [[ "$arg" = --build ]]; then
 	createvm
@@ -49,6 +56,9 @@ for arg in "$@"; do
   fi
   if [[ "$arg" = --version ]]; then
 	version
+  fi
+  if [[ "$arg" = purge virtualbox ]]; then
+	purge
   fi
 done
 ########################################
