@@ -29,7 +29,8 @@ The homebrew package uses the below folder path to configuration.
         git push -u origin main
         git tag v1.0.0
         git push origin v1.0.0
-
+	
+- Commit am(a- automatically stage all tracked modified file before the commit, m- message of the commit)
 - Create the second repository for the ruby formula file in GitHub called “homebrew-socios”. Then clone that repository into our machine using the git clone command.
 - Switch into that new repository folder to create the formula 
 - Then, we need to copy the compressed tar.gz file link from the GitHub release and create the ruby file formula by running the below command in terminal.
