@@ -26,11 +26,11 @@ function help {
 	echo "Usage: socios [options...]"
 	echo
 	echo "Valid options are:"
-	echo "--build        Create the virtual machine in VirtualBox"
-	echo "--init         Check the environment to install Socios"
+	echo "build          Create the virtual machine in VirtualBox"
+	echo "init           Check the environment to install Socios"
 	echo "--help         Print this Help menu"
 	echo "--version      Print the current version"	
-	echo "--purge        Uninstall the Virtualbox and GDisk"
+	echo "purge        Uninstall the Virtualbox and GDisk"
 }
 
 #Version of Socios formula
@@ -45,10 +45,10 @@ function version {
 ########################################
 
 for arg in "$@"; do
-  if [[ "$arg" = --init ]]; then
-	init virtualbox
+  if [[ "$arg" = init ]]; then
+	init
   fi
-  if [[ "$arg" = --build ]]; then
+  if [[ "$arg" = build ]]; then
 	createvm
   fi
   if [[ "$arg" = --help ]]; then
@@ -57,7 +57,7 @@ for arg in "$@"; do
   if [[ "$arg" = --version ]]; then
 	version
   fi
-  if [[ "$arg" = --purge ]]; then
+  if [[ "$arg" = purge ]]; then
 	purge
   fi
 done
