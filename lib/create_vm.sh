@@ -28,7 +28,7 @@ vboxmanage createvm --name $MACHINENAME --ostype "Ubuntu_64" --register --basefo
 echo "Setting up the memory and network for created $MACHINENAME virtual machine"
 VBoxManage modifyvm $MACHINENAME --ioapic on
 VBoxManage modifyvm $MACHINENAME --memory 4096
-vboxmanage modifyvm $MACHINENAME --vram 256
+vboxmanage modifyvm $MACHINENAME --vram 128
 VBoxManage modifyvm $MACHINENAME --nic1 nat
 vboxmanage modifyvm $MACHINENAME --cpus 4
 vboxmanage modifyvm $MACHINENAME --graphicscontroller VMSVGA
@@ -62,6 +62,6 @@ VBoxManage storageattach $MACHINENAME --storagectl "IDE Controller" --port 1 --d
 VBoxManage startvm $MACHINENAME
 
 #Resize the Virtualbox in VM
-VBoxManage setextradata "$MACHINENAME" GUI/ScaleFactor 2.5
+VBoxManage setextradata "$MACHINENAME" GUI/ScaleFactor 2.0
 
 echo "ISO image booted in Virtualbox.... Start setup process"
