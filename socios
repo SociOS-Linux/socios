@@ -15,6 +15,12 @@ function createvm {
 
 #Uninstalling VirtualBox_VM
 
+function unmount {
+	source $Cellar/*/lib/disk_partition.sh
+}
+
+#Uninstalling VirtualBox_VM
+
 function purge {
 	source $Cellar/*/lib/purge.sh
 }
@@ -23,14 +29,12 @@ function purge {
 
 function help {
 	echo "Socios - Linux with your Mac."
-	echo "Usage: socios [options...]"
-	echo
-	echo "Valid options are:"
 	echo "build          Create the virtual machine in VirtualBox"
 	echo "init           Check the environment to install Socios"
 	echo "--help         Print this Help menu"
 	echo "--version      Print the current version"	
-	echo "purge        Uninstall the Virtualbox and GDisk"
+	echo "unmount         unmount the current disk space in MAC Machine"
+	echo "purge           Uninstall the Virtualbox and GDisk"
 }
 
 #Version of Socios formula
@@ -56,6 +60,9 @@ for arg in "$@"; do
   fi
   if [[ "$arg" = --version ]]; then
 	version
+  fi
+  if [[ "$arg" = unmount ]]; then
+	unmount
   fi
   if [[ "$arg" = purge ]]; then
 	purge
