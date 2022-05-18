@@ -1,44 +1,67 @@
 #!/bin/bash
-MACHINENAME="socios_vm_test"
-#Disk_location="/tmp/socios/$Server_name.vdi"
-#Image_file="/tmp/socios/ubuntu.iso"
+if [ -d socios ]; then
+        rm -rf socios
+fi
+mkdir -p socios
+chmod -R 755 socios
+
+echo "Copying the ISO Image to Root Path"
+
+cp /tmp/socios/ubuntu.iso socios
+
+# Destination to save the VDI File 
+DESTINATION=socios/VirtualBoxVMs
+ISO=socios
+
+# List available Guest OS on MAC Machine
+echo "Available Guest OS on MAC Machine "
+VBoxManage list ostypes | grep -i ubuntu
+
+echo "Enter the VM name: "
+read MACHINENAME
 
 #Creating virtual machine
 echo "Creating a $MACHINENAME virtual machine"
-vboxmanage createvm --name $MACHINENAME --ostype "Ubuntu_64" --register --basefolder `pwd`
+vboxmanage createvm --name $MACHINENAME --ostype "Ubuntu_64" --register --basefolder $DESTINATION
 
 #Set memory and network
 echo "Setting up the memory and network for created $MACHINENAME virtual machine"
 VBoxManage modifyvm $MACHINENAME --ioapic on
 VBoxManage modifyvm $MACHINENAME --memory 4096
-vboxmanage modifyvm $MACHINENAME --vram 128
+vboxmanage modifyvm $MACHINENAME --vram 256
 VBoxManage modifyvm $MACHINENAME --nic1 nat
 vboxmanage modifyvm $MACHINENAME --cpus 4
 vboxmanage modifyvm $MACHINENAME --graphicscontroller VMSVGA
 
 diskutil list
-echo "Select the partition disk to install the OS"
-
-read -p "Provide the disk space want to use for Linux OS:  " disk_input
-
-disk=$(/dev/"$disk_input")
+echo "Enter the storage size"
+read -p "Enter the storage size in GB in numerals:" gb
+size=`expr $gb \* 1024`
 
 #Create Disk and connect Debian Iso
-# VBoxManage createhd --filename `pwd`/$MACHINENAME/$MACHINENAME.vdi --size 40000 --format VDI
-VBoxManage internalcommands createrawvmdk -filename `pwd`/"$MACHINENAME"/$MACHINENAME.vmdk -rawdisk disk
-VBoxManage modifyvm "$MACHINENAME" --boot1 dvd --boot2 disk --boot3 none
+echo "Creating Virtual Hard Disk"
+VBoxManage createhd --filename $DESTINATION/$MACHINENAME/$MACHINENAME.vdi --size $size --format VDI --variant Standard
 
-#Configuration of virtual hard_disk
-VBoxManage storagectl "$MACHINENAME" --name "SATA Controller" --add sata --controller IntelAhci
-VBoxManage storageattach $MACHINENAME --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium  `pwd`/$MACHINENAME/$MACHINENAME_DISK.vdi
+#Add Storage Controller to Virtual Machine
+VBoxManage storagectl $MACHINENAME --name "SATA Controller" --add sata --bootable on
 
-#Configuration of ISO_image
+#Attach Virtual Hard Disk to Virtual Storage Controller
+VBoxManage storageattach $MACHINENAME --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium $DESTINATION/$MACHINENAME/$MACHINENAME.vdi
+
+#Add IDE Controller to Virtual Machine (To Later Connect ISO/CD/DVD)
 VBoxManage storagectl $MACHINENAME --name "IDE Controller" --add ide --controller PIIX4
-VBoxManage storageattach $MACHINENAME --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium `pwd`/ubuntu.iso
 
-#Enable RDP
-VBoxManage modifyvm $MACHINENAME --vrde on
-VBoxManage modifyvm $MACHINENAME --vrdemulticon on --vrdeport 10001
+#Resize virtual machine (VDI and VHD)
+#VBoxManage modifyhd "$DESTINATION/$MACHINENAME/$MACHINENAME.vdi" −−resize 40000
+#This changes the size of the virtual hard drive to 40000 MB
 
-#Start the VM
-VBoxHeadless --startvm $MACHINENAME
+#Attach ISO_image
+VBoxManage storageattach $MACHINENAME --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium $ISO/ubuntu.iso
+
+#Start the Virtual Machine in Headless Mode
+VBoxManage startvm $MACHINENAME
+
+#Resize the Virtualbox in VM
+VBoxManage setextradata "$MACHINENAME" GUI/ScaleFactor 2.5
+
+echo "ISO image booted in Virtualbox.... Start setup process"
