@@ -34,7 +34,8 @@ else
     diskutil apfs resizeContainer "$disk_input" "$crct_space""g" jhfs+ "$name" "$size_input""g"
 fi
 
-disk=$(/dev/"$disk_input")
+#disk="/dev/"$disk_input"
+disk='/dev/"$disk_input"':$disk
 
 sudo umount "$disk"
 
