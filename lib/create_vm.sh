@@ -1,24 +1,27 @@
 #!/bin/bash
-if [ -d socios ]; then
-        rm -rf socios
+cd ~
+
+if [ -d ~/socios ]; then
+        rm -rf ~/socios
 fi
-mkdir -p socios
-chmod -R 755 socios
+mkdir -p ~/socios
+chmod -R 755 ~/socios
 
 echo "Copying the ISO Image to Root Path"
 
-cp /tmp/socios/ubuntu.iso socios
+cp /tmp/socios/ubuntu.iso ~/socios
 
 # Destination to save the VDI File 
-DESTINATION=socios/VirtualBoxVMs
-ISO=socios
+DESTINATION=~/socios/VirtualBoxVMs
+ISO=~/socios
 
 # List available Guest OS on MAC Machine
 echo "Available Guest OS on MAC Machine "
 VBoxManage list ostypes | grep -i ubuntu
 
 echo "Enter the VM name: "
-read MACHINENAME
+read name
+MACHINENAME=$name-$(date +%d-%m-%Y_%H-%M-%S)
 
 #Creating virtual machine
 echo "Creating a $MACHINENAME virtual machine"
@@ -28,13 +31,12 @@ vboxmanage createvm --name $MACHINENAME --ostype "Ubuntu_64" --register --basefo
 echo "Setting up the memory and network for created $MACHINENAME virtual machine"
 VBoxManage modifyvm $MACHINENAME --ioapic on
 VBoxManage modifyvm $MACHINENAME --memory 4096
-vboxmanage modifyvm $MACHINENAME --vram 256
+vboxmanage modifyvm $MACHINENAME --vram 128
 VBoxManage modifyvm $MACHINENAME --nic1 nat
 vboxmanage modifyvm $MACHINENAME --cpus 4
 vboxmanage modifyvm $MACHINENAME --graphicscontroller VMSVGA
 
 diskutil list
-echo "Enter the storage size"
 read -p "Enter the storage size in GB in numerals:" gb
 size=`expr $gb \* 1024`
 
@@ -62,6 +64,6 @@ VBoxManage storageattach $MACHINENAME --storagectl "IDE Controller" --port 1 --d
 VBoxManage startvm $MACHINENAME
 
 #Resize the Virtualbox in VM
-VBoxManage setextradata "$MACHINENAME" GUI/ScaleFactor 2.5
+VBoxManage setextradata "$MACHINENAME" GUI/ScaleFactor 2.0
 
 echo "ISO image booted in Virtualbox.... Start setup process"

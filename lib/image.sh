@@ -18,6 +18,8 @@ wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download
 
 rm -rf /tmp/cookies.txt
 
+
+
 echo "Downloading finished."
 
 fi
