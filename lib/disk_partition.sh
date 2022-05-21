@@ -8,7 +8,7 @@ echo "$target_disk"
 default_disk=$target_disk
 default_size=40
 
-read -p "Click Yes to use the default disk for the partition, No to select custom disk (Yes\No):" choice
+read -p "Enter Yes to use the default disk for the partition, No to select custom disk (Yes\No):" choice
 
 case "$choice" in
 	Yes|yes|"") Input=1;;
