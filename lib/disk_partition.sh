@@ -11,11 +11,12 @@ default_size=40
 read -p "Enter Yes to use the default disk for the partition, No to select custom disk (Yes\No):" choice
 
 case "$choice" in
-	Yes|yes|"") Input=1;;
-	* ) { echo "Invalid option. Plesase select the correct option."; exit 1; };;
+     	Yes|yes|y|Y|YES|"") Input=1;;
+     	No|no|n|N|NO|"") Input=0;;
+     	* ) { echo "Invalid option. Plesase select the correct option."; exit 1; };;
+     	No|no) Input=0;;
 esac
 
-  No|no) Input=0;;
 if [ $Input == 1 ]
 then
     echo "Resizing the APFS container for partition named New_volume $default_disk $default_size"
