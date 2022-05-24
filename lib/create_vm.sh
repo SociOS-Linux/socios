@@ -1,28 +1,30 @@
 #!/bin/bash
-if [ -d socios ]; then
-        rm -rf socios
+cd ~
+
+if [ -d socios/VirtualBoxVMs ]; then
+        rm -rf socios/VirtualBoxVMs
 fi
-mkdir -p socios
-chmod -R 755 socios
 
-echo "Copying the ISO Image to Root Path"
+mkdir -p socios/VirtualBoxVMs
 
-cp /tmp/socios/ubuntu.iso socios
+#Updating the folder permission 
+chmod -R 755 socios/VirtualBoxVMs
 
 # Destination to save the VDI File 
 DESTINATION=socios/VirtualBoxVMs
-ISO=socios
+ISO=socios/image
 
 # List available Guest OS on MAC Machine
 echo "Available Guest OS on MAC Machine "
-VBoxManage list ostypes | grep -i ubuntu
+VBoxManage list ostypes | grep -i Fedora
 
 echo "Enter the VM name: "
-read MACHINENAME
+read name
+MACHINENAME=$name-$(date +%d-%m-%Y_%H-%M-%S)
 
 #Creating virtual machine
 echo "Creating a $MACHINENAME virtual machine"
-vboxmanage createvm --name $MACHINENAME --ostype "Ubuntu_64" --register --basefolder $DESTINATION
+vboxmanage createvm --name $MACHINENAME --ostype "Fedora_64" --register --basefolder $DESTINATION
 
 #Set memory and network
 echo "Setting up the memory and network for created $MACHINENAME virtual machine"
@@ -34,8 +36,9 @@ vboxmanage modifyvm $MACHINENAME --cpus 4
 vboxmanage modifyvm $MACHINENAME --graphicscontroller VMSVGA
 
 diskutil list
-echo "Enter the storage size"
-read -p "Enter the storage size in GB in numerals:" gb
+space_available=$(diskutil info / | grep "Container Free Space" | awk '{print $4$5}')
+echo "You have $space_available of free space in your Mac machine"
+read -p "Enter the storage space for your virtual machine in GB in numerals:" gb
 size=`expr $gb \* 1024`
 
 #Create Disk and connect Debian Iso
@@ -56,7 +59,7 @@ VBoxManage storagectl $MACHINENAME --name "IDE Controller" --add ide --controlle
 #This changes the size of the virtual hard drive to 40000 MB
 
 #Attach ISO_image
-VBoxManage storageattach $MACHINENAME --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium $ISO/ubuntu.iso
+VBoxManage storageattach $MACHINENAME --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium $ISO/Fedora.iso
 
 #Start the Virtual Machine in Headless Mode
 VBoxManage startvm $MACHINENAME
