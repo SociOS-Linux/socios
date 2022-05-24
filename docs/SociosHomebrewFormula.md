@@ -1,5 +1,6 @@
-##Socios Homebrew Formula##
-**Homebrew Formula**
+##Socios Homebrew Formula
+
+#**Homebrew Formula**
 
 The Homebrew tap/formula process is the combination of two GitHub repositories. 
 
@@ -7,9 +8,10 @@ The Homebrew tap/formula process is the combination of two GitHub repositories.
 
 * The second GitHub repo contains the homebrew formula with the ruby file (homebrew-socios).
 
+
 # **Step1: Creating Tag and Releases**
 
-* We need to clone the First repository(socios) in a specific path. Using the below Git clone command
+- We need to clone the First repository(socios) in a specific path. Using the below Git clone command
 
 $ git clone [https://github.com/SociOS-Linux/socios.git](https://github.com/SociOS-Linux/socios.git)
 
