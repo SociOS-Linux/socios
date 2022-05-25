@@ -34,7 +34,7 @@ The release draft will attach itself to the tag you've pushed in the first step.
 
 The socios-installer reference docs have not yet been published  [to-do]
 
-To update this, read the [Deploying](https://github.com/socios-linux/socios/docs) section in the socios-linux/docs.
+To update this, read the [Deploying](https://github.com/socios-linux/socios) section in the socios-linux/socios/docs.
 
 ## Prerequisites
 
