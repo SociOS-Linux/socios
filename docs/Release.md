@@ -18,13 +18,13 @@ git push origin ${VERSION}
 
 This will push your the new tag to the GitHub repository where it will show up as a tag without release.
 
-Follow CircleCI's progress in [https://circleci.com/gh/giantswarm/gsctl/](https://circleci.com/gh/giantswarm/gsctl/). Do not do anything until CI is finished.
+Follow CircleCI's progress in [https://circleci.com/gh/socios-linux/socios](https://circleci.com/gh/socios-linux/socios). Do not do anything until CI is finished.
 
 CircleCI should have created a new Release draft. Edit this draft.
 
 ## Edit the release draft and publish
 
-Open the [release draft](https://github.com/giantswarm/gsctl/releases/) on Github.
+Open the [release draft](https://github.com/socios-linux/socios/releases/) on Github.
 
 Edit the description to inform about what has changed since the last release. Save and publish the release.
 
@@ -32,19 +32,18 @@ The release draft will attach itself to the tag you've pushed in the first step.
 
 ## Release docs
 
-The gsctl reference hosted at [https://docs.giantswarm.io/ui-api/gsctl/](https://docs.giantswarm.io/ui-api/gsctl/) contains the latest releasd gsctl version. ([Relevant code](https://github.com/giantswarm/docs/blob/master/Makefile#L49))
+The socios-installer reference docs have not yet been published  [to-do]
 
-To update this, read the [Deploying](https://github.com/giantswarm/docs#deploying) section in the giantswarm/docs Readme.
+To update this, read the [Deploying](https://github.com/socios-linux/socios/docs#deploying) section in the socios-linux/docs.
 
 ## Prerequisites
 
 CircleCI must be set up with certain environment variables:
 
-- `CODE_SIGNING_CERT_BUNDLE_BASE64` - Base64 encoded PKCS#12 key/cert bundle used for signing Windows binaries
+- `CODE_SIGNING_CERT_BUNDLE_BASE64` - Base64 encoded PKCS#12 key/cert bundle used for signing binaries
 - `CODE_SIGNING_CERT_BUNDLE_PASSWORD` - Password for the above bundle
 - `RELEASE_TOKEN` - A GitHub token with the permission to write to repositories
-  - [giantswarm/gsctl](https://github.com/giantswarm/gsctl/)
-  - [giantswarm/scoop-bucket](https://github.com/giantswarm/scoop-bucket)
-  - [giantswarm/homebrew-giantswarm](https://github.com/giantswarm/homebrew-giantswarm)
+  - [giantswarm/gsctl](https://github.com/socios-linux/socios)
+  - [giantswarm/sociosbrew-tap](https://github.com/socios-linux/sociosbrew-tap)
 - `GITHUB_USER_EMAIL` - Email address of the github user owning the personal token above
 - `GITHUB_USER_NAME` - Username of the above github user
