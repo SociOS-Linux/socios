@@ -18,7 +18,7 @@ git push origin ${VERSION}
 
 This will push your the new tag to the GitHub repository where it will show up as a tag without release.
 
-Follow CircleCI's progress in [https://circleci.com/gh/socios-linux/socios](https://circleci.com/gh/socios-linux/socios). Do not do anything until CI is finished.
+Follow CircleCI's progress in [https://circleci.com/gh/socios-linux/socios](https://app.circleci.com/pipelines/github/SociOS-Linux/socios). Do not do anything until CI is finished.
 
 CircleCI should have created a new Release draft. Edit this draft.
 
