@@ -43,7 +43,7 @@ CircleCI must be set up with certain environment variables:
 - `CODE_SIGNING_CERT_BUNDLE_BASE64` - Base64 encoded PKCS#12 key/cert bundle used for signing binaries
 - `CODE_SIGNING_CERT_BUNDLE_PASSWORD` - Password for the above bundle
 - `RELEASE_TOKEN` - A GitHub token with the permission to write to repositories
-  - [giantswarm/gsctl](https://github.com/socios-linux/socios)
-  - [giantswarm/sociosbrew-tap](https://github.com/socios-linux/sociosbrew-tap)
+  - [socios-linux/socios](https://github.com/socios-linux/socios)
+  - [socios-linux/sociosbrew-tap](https://github.com/socios-linux/sociosbrew-tap)
 - `GITHUB_USER_EMAIL` - Email address of the github user owning the personal token above
 - `GITHUB_USER_NAME` - Username of the above github user
