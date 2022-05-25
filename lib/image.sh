@@ -25,7 +25,7 @@ wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download
 
 echo "Copying the ISO image file to Socios Destination"
 
-cp /tmp/socios/Fedora.iso ~/socios/image/
+cp /tmp/Fedora.iso ~/socios/image/
 
 rm -rf /tmp/cookies.txt
 
