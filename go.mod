@@ -1,4 +1,4 @@
-module github.com/giantswarm/gsctl
+module github.com/socios-linux/socios
 
 go 1.17
 
