@@ -1,20 +1,21 @@
+
 # Socios
 
 This repository contains scripts connected with the SociOS Linux Homebrew installer which can be installed witht he following:
 brew tap SociOS-Linux/socios
 brew install socios
-
-
+=======
 ## Socios Package
 
 - Socios package contains the below files and directory
-    1. ***Socios*** – root bin command file.
-    2. ***Lib*** – directory contains with below script files
-    3. ***Install_virtualbox.scpt*** – this script file will be run by calling the check function
-    4. ***Image.sh*** – this script file is included in the above file as source
-    5. ***Create_vm.sh*** – this file will be run by calling the build function
-    6. ***Csrutil_status.sh*** – this file detect the SIP status and run it accordingly
-	7. ***Disk_partition.sh*** -  this file will help to create the partation in disk space
+    1. ***socios*** – root bin command file.
+    2. ***lib*** – directory contains with below script files
+    3. ***install_virtualbox.scpt*** – this script file will be run by calling the check function
+    4. ***image.sh*** – this script file is included in the above file as source
+    5. ***create_vm.sh*** – this file will be run by calling the build function
+    6. ***csrutil_status.sh*** – this file detect the SIP status and run it accordingly
+    7. ***Disk_partition.sh*** -  this file will help to create the partation in disk space
+
 
 ## Socios bin command file
 - This file contains the functions and arguments of socios such as build, check, help, and version. Currently, we have added 4 functions to this file.
