@@ -1,26 +1,76 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/2.0/configuration-reference
-version: 2.1
-
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+version: 2
 jobs:
-  say-hello:
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+  build:
     docker:
-      - image: cimg/base:stable
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+      - image: circleci/golang:1.15.2
+
+    # We use 'large' because with 'medium' an 'medium#' we saw tests fail due to memory problems and too many threads.
+    resource_class: large
+
+    working_directory: /go/src/github.com/socios-linux/socios
     steps:
       - checkout
       - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+          name: Install kubectl
+          command: |
+            kubectl_version="$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)"
+            curl -s -LO https://storage.googleapis.com/kubernetes-release/release/${kubectl_version}/bin/linux/amd64/kubectl
+            chmod +x ./kubectl
+            sudo mv ./kubectl /usr/local/bin/kubectl
+      - run:
+          name: go build
+          command: |
+            go build -v
+      - run:
+          name: go test
+          command: |
+            go test -v ./...
+      - run:
+          name: Execute the built binary
+          command: ./socios info
 
-# Invoke jobs via workflows
-# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+      - run:
+          name: Update Coveralls
+          command: |
+            go get golang.org/x/tools/cmd/cover
+            go get github.com/mattn/goveralls
+            go test ./... -v -covermode=count -coverprofile=coverage.out
+            goveralls -coverprofile=coverage.out -service=circle-ci -repotoken $COVERALLS_TOKEN
+  dist:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Create VERSION file
+          command: echo $CIRCLE_TAG > ./VERSION
+      - run:
+          name: Store code signing certificate
+          command: |
+            mkdir -p certs
+            echo $CODE_SIGNING_CERT_BUNDLE_BASE64 | base64 -d > certs/code-signing.p12
+      - run:
+          name: Create binary distribution for all platforms
+          command: make bin-dist
+      - run:
+          name: Create GitHub release
+          command: ./.circleci/release.sh $CIRCLE_TAG $RELEASE_TOKEN
+      - run:
+          name: Update Homebrew tap
+          command: ./.circleci/update-homebrew.sh $CIRCLE_TAG
+      - run:
+          name: Update scoop bucket
+          command: ./.circleci/update-scoop.sh $CIRCLE_TAG
+
 workflows:
-  say-hello-workflow:
+  version: 2
+  build:
     jobs:
-      - say-hello
+      - build
+  release:
+    jobs:
+      - dist:
+          filters:
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)*$/
+            branches:
+              ignore: /.*/
