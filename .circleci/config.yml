@@ -57,9 +57,7 @@ jobs:
       - run:
           name: Update Homebrew tap
           command: ./.circleci/update-homebrew.sh $CIRCLE_TAG
-      - run:
-          name: Update scoop bucket
-          command: ./.circleci/update-scoop.sh $CIRCLE_TAG
+
 
 workflows:
   version: 2
