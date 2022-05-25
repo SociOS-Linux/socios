@@ -11,8 +11,8 @@ mkdir -p socios/VirtualBoxVMs
 chmod -R 755 socios/VirtualBoxVMs
 
 # Destination to save the VDI File 
-DESTINATION=socios/VirtualBoxVMs
-ISO=socios/image
+DESTINATION=~/socios/VirtualBoxVMs
+ISO=~/socios/image
 
 # List available Guest OS on MAC Machine
 echo "Available Guest OS on MAC Machine "

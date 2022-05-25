@@ -1,3 +1,10 @@
+
+# Socios
+
+This repository contains scripts connected with the SociOS Linux Homebrew installer which can be installed witht he following:
+brew tap SociOS-Linux/socios
+brew install socios
+=======
 ## Socios Package
 
 - Socios package contains the below files and directory
@@ -8,6 +15,7 @@
     5. ***create_vm.sh*** – this file will be run by calling the build function
     6. ***csrutil_status.sh*** – this file detect the SIP status and run it accordingly
     7. ***Disk_partition.sh*** -  this file will help to create the partation in disk space
+
 
 ## Socios bin command file
 - This file contains the functions and arguments of socios such as build, check, help, and version. Currently, we have added 4 functions to this file.
