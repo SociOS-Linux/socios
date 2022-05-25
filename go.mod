@@ -37,6 +37,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
+	github.com/giantswarm/gsctl v0.0.0-20220330083142-86104d83c94d // indirect
 	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
 	github.com/go-openapi/analysis v0.19.10 // indirect
@@ -72,6 +73,7 @@ require (
 	github.com/rogpeppe/go-internal v1.5.0 // indirect
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
+	github.com/socios-linux/columnize v2.0.2+incompatible // indirect
 	go.mongodb.org/mongo-driver v1.3.4 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect

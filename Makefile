@@ -123,4 +123,4 @@ bin-dist: crosscompile
 
 # remove generated stuff
 clean:
-	rm -rf bin-dist build go-build-cache release ./gsctl
+	rm -rf bin-dist build go-build-cache release ./socios
