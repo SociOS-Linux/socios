@@ -100,15 +100,6 @@ bin-dist: crosscompile
 
 	@mkdir -p bin-dist
 
-	@# test if code signing certificate is available in ./certs/code-signing.p12
-	test -f ./certs/code-signing.p12
-
-	@# test if code signing bundle password is in $CODE_SIGNING_CERT_BUNDLE_PASSWORD
-	@ if [ "${CODE_SIGNING_CERT_BUNDLE_PASSWORD}" = "" ]; then \
-	  echo 'Environment variable $$CODE_SIGNING_CERT_BUNDLE_PASSWORD not set'; \
-	  exit 1; \
-  fi
-
 	for OS in darwin-amd64 linux-amd64; do \
 		mkdir -p build/$(BIN)-$(VERSION)-$$OS; \
 		cp README.md build/$(BIN)-$(VERSION)-$$OS/; \
