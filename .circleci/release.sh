@@ -5,11 +5,11 @@ set -o nounset
 set -o pipefail
 
 readonly TAG=$1
-readonly GITHUB_TOKEN=$2
+readonly GITHUB_TOKEN_SOCIOS=$2
 
 main() {
   echo "Creating GitHub release draft for version ${TAG}..."
-  if ! id=$(release_github $TAG $GITHUB_TOKEN); then
+  if ! id=$(release_github $TAG $GITHUB_TOKEN_SOCIOS); then
     log_error "GitHub release could not get created."
     exit 1
   fi
@@ -21,7 +21,7 @@ main() {
   for filepath in ./bin-dist/*; do
     [ -f "$filepath" ] || continue
 
-    upload_result=$(upload_asset $TAG $GITHUB_TOKEN $id $filepath)
+    upload_result=$(upload_asset $TAG $GITHUB_TOKEN_SOCIOS $id $filepath)
     if [ "${upload_result}" == "uploaded" ]; then
       echo "File ${filepath} uploaded successfully"
     else
