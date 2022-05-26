@@ -97,8 +97,7 @@ test: $(TESTBIN)
 
 # Create binary files for releases
 bin-dist: crosscompile
-
-	@mkdir -p bin-dist
+	mkdir -p bin-dist
 
 	for OS in darwin-amd64 linux-amd64; do \
 		mkdir -p build/$(BIN)-$(VERSION)-$$OS; \
