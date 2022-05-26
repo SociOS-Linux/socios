@@ -10,7 +10,7 @@ set -o pipefail
 # Our version number
 VERSION=$1
 
-REPO_URL="https://${RELEASE_TOKEN}@github.com/socios-linux/sociosbrew-tap.git"
+REPO_URL="https://${RELEASE_TOKEN_SOCIOSBREW}@github.com/socios-linux/sociosbrew-tap.git"
 
 # SHA256 hash of the tar.gz file
 SHA256=$(openssl dgst -sha256 bin-dist/socios-$VERSION-darwin-amd64.tar.gz|awk '{print $2}')
