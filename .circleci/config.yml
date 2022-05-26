@@ -53,7 +53,7 @@ jobs:
           command: make bin-dist
       - run:
           name: Create GitHub release
-          command: ./.circleci/release.sh $CIRCLE_TAG $RELEASE_TOKEN
+          command: ./.circleci/release.sh $CIRCLE_TAG $RELEASE_TOKEN_SOCIOS RELEASE_TOKEN_SOCIOSBREW
       - run:
           name: Update Homebrew tap
           command: ./.circleci/update-homebrew.sh $CIRCLE_TAG
