@@ -1,18 +1,18 @@
 #!/bin/bash
 cd ~
 
-if [ -d socios/VirtualBoxVMs ]; then
-        rm -rf socios/VirtualBoxVMs
+if [ -d ~/VirtualBoxVMs/socios ]; then
+        rm -rf ~/VirtualBoxVMs/socios
 fi
 
-mkdir -p socios/VirtualBoxVMs
+mkdir -p ~/VirtualBoxVMs/socios/
 
-#Updating the folder permission 
-chmod -R 755 socios/VirtualBoxVMs
+#Updating the folder permission
+chmod -R 755 ~/VirtualBoxVMs/socios
 
-# Destination to save the VDI File 
-DESTINATION=~/socios/VirtualBoxVMs
-ISO=~/socios/image
+# Destination to save the VDI File
+DESTINATION=~/VirtualBoxVMs/socios
+ISO=~/VirtualBoxVMs/socios
 
 # List available Guest OS on MAC Machine
 echo "Available Guest OS on MAC Machine "
