@@ -34,8 +34,6 @@ _testmain.go
 bin-dist
 build
 /go-build-cache
-
-.DS_Store
 .sass-cache
 *.map
 *.pyc
