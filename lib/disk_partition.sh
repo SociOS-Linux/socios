@@ -16,9 +16,10 @@ default_size=50
 read -p "Enter Yes to use the default disk for the partition, No to select custom disk (Yes\No):" choice
 
 case "$choice" in
-	Yes|yes|"") Input=1;;
-	No|no) Input=0;;
-	* ) { echo "Invalid option. Please select the correct option."; exit 1; };;
+      Yes|yes|y|Y|YES|"") Input=1;;
+      No|no|n|N|NO|"") Input=0;;
+      * ) { echo "Invalid option. Please select the correct option."; exit 1; };;
+      No|no) Input=0;;
 esac
 
 if [ $Input == 1 ]
@@ -29,11 +30,11 @@ then
     sudo diskutil apfs resizeContainer "$default_disk" "$crct_default_space""g"
 else
     diskutil list $default_disk
-	space_available=$(diskutil info / | grep "Container Free Space" | awk '{print $4$5}')
-	echo "You have $space_available of free space in your Mac machine"
+    space_available=$(diskutil info / | grep "Container Free Space" | awk '{print $4$5}')
+    echo "You have $space_available of free space in your Mac machine"
     echo "Provide the disk space want to use from the above list."
-	total_space="$(diskutil info /dev/$default_disk | grep "Disk Size" | awk '{print $3}')"
-    read -p "Provide the disk space want to allocate for Linux OS in numerals(e.g:40 for 40GB):  " size_input
+    total_space="$(diskutil info /dev/$default_disk | grep "Disk Size" | awk '{print $3}')"
+        read -p "Provide the disk space want to allocate for Linux OS in numerals(e.g:40 for 40GB):  " size_input
 	if [[ $size_input -le 30 ]]; then
 		read -p "Please Provide the disk space more than 30(e.g:40):  " size_input
 		crct_space="$(echo $total_space - $size_input | bc)"
