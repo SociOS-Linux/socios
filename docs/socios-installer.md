@@ -1,5 +1,5 @@
 
-# Socios Documentation
+# socios-installer Documentation
 
 ### Socio Formula
 
@@ -8,10 +8,11 @@ Socios formula is a package definition written in Ruby.
 It can be created with brew create <URL> where <URL> is zip or tarball. 
 
 ```bash
-$ brew create https://github.com/SociOS-Linux/socios/archive/refs/tags/v1.3.6.tar.gz
+$ brew create https://github.com/SociOS-Linux/socios-setup/archive/refs/tags/v<MAJOR.MINOR.PATCH>.tar.gz
 ```
 
-Installed with brew install <formula>command  & debugged with brew install --debug.
+Installed with brew install <formula> command 
+Debugged with brew install --debug.
 
 ```bash
 $ brew install package-name
@@ -60,7 +61,7 @@ Open MAC machine terminal. Now we need to set a socios repository name with brew
 The brew tap command adds more repositories to the list of formulas that Homebrew tracks, updates, and installs from. Run the following command in the terminal.
 
 ```bash
-$ brew tap SociOS-Linux/socios
+$ brew tap SociOS-Linux/socios-setup
 ```
 
 <img src="https://i.ibb.co/fGSgKG4/image-0.png" width="700px">
@@ -92,14 +93,6 @@ In this function, we have added the Virtualbox installation commands and ISO ima
 $ socios init
 ```
 
-Drive details: We have created a separate drive for the Ubuntu iso image and updated the ImageID and ISO ImageURL in the Image script file 
-
-Mail ID:      socios.setup@gmail.com
-Password: Arya143$
-
-<img src="https://i.ibb.co/fYJ2fzy/image-3.png" width="700px">
-
-Reference Documentation: https://docs.google.com/document/d/1PQFOSeFuEH0rISVxM-Hw60s8AGVopTlQEdAWVg_IkFA/edit?usp=sharing
 
 ### Step2:  Create Virtual Machine in Virtual Box & Booting the ISO image in Virtual box
 
