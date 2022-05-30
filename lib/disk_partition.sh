@@ -9,11 +9,14 @@ echo "Recommended swap space for disk partition is minimum 4GB, It will allocate
 echo "checking the Apple_Apfs disk"
 target_disk=$(diskutil list | awk '/Apple_APFS/ {print $7}')
 
+diskutil list
+echo "The default disk for resizing is the standard Apple_APFS Container disk1 is $target_disk"
 echo "$target_disk"
 default_disk=$target_disk
 default_size=50
 
-read -p "Enter Yes to use the default disk for the partition, No to select custom disk (Yes\No):" choice
+
+read -p "Ready to proceed with re-Partitioning of default disk? (Yes\No):" choice
 
 case "$choice" in
       Yes|yes|y|Y|YES|"") Input=1;;
@@ -24,6 +27,7 @@ esac
 
 if [ $Input == 1 ]
 then
+
     echo "Resizing the APFS container for partition named New_volume $default_disk $default_size"
     total_space="$(diskutil info /dev/$default_disk | grep "Disk Size" | awk '{print $3}')"
     crct_default_space="$(echo $total_space - $default_size | bc)"
