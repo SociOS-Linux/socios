@@ -1,0 +1,69 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.15.2
+
+    # We use 'large' because with 'medium' an 'medium#' we saw tests fail due to memory problems and too many threads.
+    resource_class: large
+
+    working_directory: /go/src/github.com/socios-linux/socios
+    steps:
+      - checkout
+      - run:
+          name: Install kubectl
+          command: |
+            kubectl_version="$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)"
+            curl -s -LO https://storage.googleapis.com/kubernetes-release/release/${kubectl_version}/bin/linux/amd64/kubectl
+            chmod +x ./kubectl
+            sudo mv ./kubectl /usr/local/bin/kubectl
+      - run:
+          name: go build
+          command: |
+            go build -v
+      - run:
+          name: go test
+          command: |
+            go test -v ./...
+      - run:
+          name: Execute the built binary
+          command: ./socios info
+
+      - run:
+          name: Update Coveralls
+          command: |
+            go get golang.org/x/tools/cmd/cover
+            go get github.com/mattn/goveralls
+            go test ./... -v -covermode=count -coverprofile=coverage.out
+            
+  dist:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Create VERSION file
+          command: echo $CIRCLE_TAG > ./VERSION
+      - run:
+          name: Create binary distribution for all platforms
+          command: make bin-dist
+      - run:
+          name: Create GitHub release
+          command: ./.circleci/release.sh $CIRCLE_TAG $RELEASE_TOKEN_SOCIOS $RELEASE_TOKEN_SOCIOSBREW
+      - run:
+          name: Update Homebrew tap
+          command: ./.circleci/update-homebrew.sh $CIRCLE_TAG
+
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+  release:
+    jobs:
+      - dist:
+          filters:
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)*$/
+            branches:
+              ignore: /.*/
