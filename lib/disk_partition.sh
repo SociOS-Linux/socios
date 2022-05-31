@@ -27,7 +27,7 @@ then
    # crct_default_space="$(echo $total_space - $default_size | bc)"
    # sudo diskutil apfs resizeContainer "$default_disk" "$crct_default_space""g"
 else
-    diskutil list $default_disk
+    diskutil list
     space_available=$(diskutil info / | grep "Container Free Space" | awk '{print $4$5}')
     echo "You have $space_available of free space in your Mac machine"
     echo "Provide the disk space want to use from the above list."
