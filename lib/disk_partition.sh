@@ -21,11 +21,11 @@ esac
 
 if [ $Input == 1 ]
 then
-
-    echo "Resizing the APFS container for partition named New_volume $default_disk $default_size"
-    total_space="$(diskutil info /dev/$default_disk | grep "Disk Size" | awk '{print $3}')"
-    crct_default_space="$(echo $total_space - $default_size | bc)"
-    sudo diskutil apfs resizeContainer "$default_disk" "$crct_default_space""g"
+    exit
+   # echo "Resizing the APFS container for partition named New_volume $default_disk $default_size"
+   #total_space="$(diskutil info /dev/$default_disk | grep "Disk Size" | awk '{print $3}')"
+   # crct_default_space="$(echo $total_space - $default_size | bc)"
+   # sudo diskutil apfs resizeContainer "$default_disk" "$crct_default_space""g"
 else
     diskutil list $default_disk
     space_available=$(diskutil info / | grep "Container Free Space" | awk '{print $4$5}')
