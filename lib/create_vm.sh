@@ -12,7 +12,7 @@ chmod -R 755 ~/VirtualBoxVMs/socios
 
 # Destination to save the VDI File
 DESTINATION=~/VirtualBoxVMs/socios
-ISO=~/VirtualBoxVMs/socios
+ISO=~/VirtualBoxVMs/build
 
 # List available Guest OS on MAC Machine
 echo "Available Guest OS on MAC Machine "
