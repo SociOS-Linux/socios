@@ -1,6 +1,6 @@
 #!/bin/bash
 #Automated script for create ing partition from APFS to Linux.
-echo "Recommended swap space for disk partition is minimum 4GB, It will allocate automatically from the current disk space"
+echo "Get identifier from the Mac Machine"
 target_disk=$(diskutil list | awk '/Apple_APFS/ {print $7}')
 
 echo "Available disk partitions in mac machine"
