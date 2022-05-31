@@ -4,7 +4,8 @@ if [ -d ~/VirtualBoxVMs/socios ]; then
         rm -rf VirtualBoxVMs/socios
 fi
 
-mkdir -p socios/VirtualBoxVMs
+cd ~
+mkdir -p /VirtualBoxVMs/socios
 
 #Updating the folder permission
 chmod -R 755 socios/VirtualBoxVMs
