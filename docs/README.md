@@ -1,7 +1,7 @@
 # Socios
 
 This repository contains scripts connected with the SociOS Linux Homebrew installer which can be installed witht he following:
-brew tap SociOS-Linux/socios
+brew tap SociOS-Linux/socios-setup
 brew install socios
 
 ## Socios Package

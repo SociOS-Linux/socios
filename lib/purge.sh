@@ -2,7 +2,7 @@
 
 echo "Do you want Uninstall VirtualBox & GDisk"
 
-read -p "Click Yes to uninstall the Virtualbox & Gdisk, No to exist from the option (Yes\No):" choice
+read -p "Click Yes to uninstall the Virtualbox & Gdisk, No to exit from the option (Yes\No):" choice
 
 case "$choice" in
 	Yes|yes|"") Input=1;;
@@ -14,7 +14,7 @@ if [ $Input == 1 ]
 then
     echo "Uninstalling VirtualBox & GDisk"
     brew uninstall --cask virtualbox
-	brew uninstall --cask gdisk
+    brew uninstall --cask gdisk
 else
     echo "VirtualBox & GDisk are Available in Destination"
     exit

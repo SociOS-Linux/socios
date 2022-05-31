@@ -1,20 +1,19 @@
 # Disk partition - script explanation
 
-1. The script first creates a free space with default size of 50 gb if the user's choice is to stick to default settings by giving a "Yes/yes". 
+1. The script first creates a free space with default size of 150 gb if the user's choice is to stick to default settings by giving a "Yes/yes". 
 
 ```
-default_size=50
+default_size=150
 ```
 
 2. The user can also deny the default settings and can give a "No/no" which lets them decide how much space they need for SociOS.Either choice will create a free space for the sgdisk to do the rest.
 
 ```
-read -p "Click Yes to use the default disk space for the partition, No to select custom disk space (Yes\No):" choice
-
 case "$choice" in
-	Yes|yes|"") Input=1;;
-	No|no) Input=0;;
-	* ) { echo "Invalid option. Please select the correct option."; exit 1; };;
+      Yes|yes|y|Y|YES|"") Input=1;;
+      No|no|n|N|NO|"") Input=0;;
+      * ) { echo "Invalid option. Please select the correct option."; exit 1; };;
+      No|no) Input=0;;
 esac
 ```
 

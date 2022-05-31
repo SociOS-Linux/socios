@@ -1,14 +1,14 @@
 # Booting a VM using MAC Physical Disk:
 
-1. After all the partitions are done the Virtual Machine is created from the Virtual Box, the user is prompted for the Virtual machine name of their choice. The VM name is created with the date and time information, so even if they provide similar name by mistake a separate VM will get created.
+1. The script first searches for the folder VirtualBox/socios, it removes the folder if present, it creates the folder if not. This process occurs in root folder of every mac machine. After all the partitions are done the Virtual Machine is created from the Virtual Box, the VM name is fixed to "Inception".
 
 ```
 cd ~
-if [ -d socios/VirtualBoxVMs ]; then
-        rm -rf socios/VirtualBoxVMs
+if [ -d VirtualBoxVMs/socios ]; then
+        rm -rf VirtualBoxVMs/socios
 fi
 
-mkdir -p socios/VirtualBoxVMs
+mkdir -p VirtualBoxVMs/socios
 ```
 - At first, the script check for the required folder in the root. If not present, it created it and provides the permission along with it.
 
@@ -22,7 +22,7 @@ Please provide the last number you see in the Linux Swap identifier(eg:3 for $wh
 3. After the partition numbers are entered in, all the partitions are pointed to the vmdk file that is created for the virtual machine. The Mac physical disk is converted to storage space,swap and boot for Virtual Machine.
 
 ```
-sudo  vboxmanage  internalcommands  createrawvmdk  -filename  "/User/username/vmname/linux.vmdk"  -rawdisk  /dev/disk0  -partitions  4,5,6,7
+sudo  vboxmanage  internalcommands  createrawvmdk  -filename  "/User/username/Inception/Inception.vmdk"  -rawdisk  /dev/disk0  -partitions  4,5,6,7
 ```
 
 4. The Mac username is asked from the user for providing necessary permission to the VMDK file and all the partition.
