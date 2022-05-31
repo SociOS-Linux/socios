@@ -1,14 +1,14 @@
 #!/bin/bash
+cd ~
 
-if [ -d ~/VirtualBoxVMs/socios ]; then
+if [ -d VirtualBoxVMs/socios ]; then
         rm -rf VirtualBoxVMs/socios
 fi
 
-cd ~
-mkdir -p /VirtualBoxVMs/socios
+mkdir -p VirtualBoxVMs/socios
 
 #Updating the folder permission
-chmod -R 755 socios/VirtualBoxVMs
+chmod -R 755 VirtualBoxVMs/socios
 
 # Destination to save the VDI File 
 DESTINATION=~/socios/VirtualBoxVMs
