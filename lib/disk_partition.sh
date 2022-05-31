@@ -13,7 +13,7 @@ diskutil list
 echo "The default disk for resizing is the standard Apple_APFS Container disk1 is $target_disk"
 echo "$target_disk"
 default_disk=$target_disk
-default_size=50
+default_size=150
 
 
 read -p "Ready to proceed with re-Partitioning of default disk? (Yes\No):" choice
