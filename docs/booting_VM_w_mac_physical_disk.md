@@ -1,6 +1,6 @@
 # Booting a VM using MAC Physical Disk:
 
-1. After all the partitions are done the Virtual Machine is created from the Virtual Box, the user is prompted for the Virtual machine name of their choice. The VM name is created with the date and time information, so even if they provide similar name by mistake a separate VM will get created.
+1. After all the partitions are done the Virtual Machine is created from the Virtual Box, the VM name is fixed to "Inception".
 
 ```
 cd ~
