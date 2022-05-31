@@ -3,6 +3,11 @@
 echo "Checking the Apple_Apfs disk identifier from the Mac Machine"
 target_disk=$(diskutil list | awk '/Apple_APFS/ {print $7}')
 
+#diskutil info /dev/disk1s2 | grep "Part of Whole" | awk '{print $4}'
+parent_identifier="$(diskutil info /dev/$default_disk | grep "Part of Whole" | awk '{print $4}')"
+whole_disk=/dev/"$parent_identifier"
+
+
 space_available=$(diskutil info / | grep "Container Free Space" | awk '{print $4$5}')
 echo "You have $space_available of free space in your Mac machine"
 
@@ -44,10 +49,6 @@ else
 fi
 
 brew install gptfdisk
-
-#diskutil info /dev/disk1s2 | grep "Part of Whole" | awk '{print $4}'
-parent_identifier="$(diskutil info /dev/$default_disk | grep "Part of Whole" | awk '{print $4}')"
-whole_disk=/dev/"$parent_identifier"
 
 ram=$(system_profiler SPHardwareDataType | grep "Memory:" | awk '{print $2}')
 
