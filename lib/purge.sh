@@ -14,7 +14,7 @@ if [ $Input == 1 ]
 then
     echo "Uninstalling VirtualBox & GDisk"
     brew uninstall --cask virtualbox
-	brew uninstall --cask gdisk
+    brew uninstall --cask gdisk
 else
     echo "VirtualBox & GDisk are Available in Destination"
     exit
