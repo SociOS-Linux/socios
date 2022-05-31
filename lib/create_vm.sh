@@ -1,7 +1,7 @@
 #!/bin/bash
-cd ~
-if [ -d socios/VirtualBoxVMs ]; then
-        rm -rf socios/VirtualBoxVMs
+
+if [ -d ~/VirtualBoxVMs/socios ]; then
+        rm -rf VirtualBoxVMs/socios
 fi
 
 mkdir -p socios/VirtualBoxVMs
@@ -57,11 +57,6 @@ sudo  chmod  go+rw  $whole_disk"s"$fourth
 sudo  chmod  go+rw  $whole_disk
 
 read -p "Enter the name of your mac user:  " USER
-
-#sudo chown $USER $whole_disk"s"$first
-#sudo chown $USER $whole_disk"s"$sec
-#sudo chown $USER $whole_disk"s"$third
-#sudo chown $USER $whole_disk"s"$fourth
 
 
 #Create Disk and connect Debian Iso
