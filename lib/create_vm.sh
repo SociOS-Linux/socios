@@ -14,10 +14,12 @@ chmod -R 755 VirtualBoxVMs/socios
 DESTINATION=~/VirtualBoxVMs/socios
 ISO=~/socios/image
 
+#fetching and printing the current container where we are creating the VM
 target_disk=$(diskutil list | awk '/Apple_APFS/ {print $7}')
-
 echo "$target_disk"
 default_disk=$target_disk
+
+#fetching the whole disk to provide permission for the partitions
 parent_identifier="$(diskutil info /dev/$default_disk | grep "Part of Whole" | awk '{print $4}')"
 whole_disk=/dev/"$parent_identifier"
 
