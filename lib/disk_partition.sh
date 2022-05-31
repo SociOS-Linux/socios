@@ -16,24 +16,23 @@ default_size=150
 read -p "Ready to proceed with Re-Partitioning of default disk? (Yes\No):" choice
 
 case "$choice" in
-      Yes|yes|y|Y|YES|"") Input=0;;
-      No|no|n|N|NO|"") Input=1;;
+      Yes|yes|y|Y|YES|"") Input=1;;
+      No|no|n|N|NO|"") Input=0;;
       * ) { echo "Invalid option. Please select the correct option."; exit 1; };;
       No|no) Input=0;;
 esac
 
 if [ $Input == 1 ]
 then
-    exit
-   # echo "Resizing the APFS container for partition named New_volume $default_disk $default_size"
-   #total_space="$(diskutil info /dev/$default_disk | grep "Disk Size" | awk '{print $3}')"
-   # crct_default_space="$(echo $total_space - $default_size | bc)"
-   # sudo diskutil apfs resizeContainer "$default_disk" "$crct_default_space""g"
+   echo "Resizing the APFS container for partition named New_volume $default_disk $default_size"
+   total_space="$(diskutil info /dev/$default_disk | grep "Disk Size" | awk '{print $3}')"
+   crct_default_space="$(echo $total_space - $default_size | bc)"
+   sudo diskutil apfs resizeContainer "$default_disk" "$crct_default_space""g"
 else
     diskutil list
     echo "Provide the disk space want to use for the above list."
     total_space="$(diskutil info /dev/$default_disk | grep "Disk Size" | awk '{print $3}')"
-        read -p "Provide the disk space want to allocate for Linux OS in numerals(e.g:40 for 40GB):  " size_input
+    read -p "Provide the disk space want to allocate for Linux OS in numerals(e.g:40 for 40GB):  " size_input
 	if [[ $size_input -le 30 ]]; then
 		read -p "Please Provide the disk space more than 30(e.g:40):  " size_input
 		crct_space="$(echo $total_space - $size_input | bc)"
