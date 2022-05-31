@@ -7,13 +7,13 @@ if [ -d VirtualBoxVMs/socios/ ]; then
 
 else
 
-mkdir -p ~/VirtualBoxVMs/socios/
+mkdir -p ~/VirtualBoxVMs/socios/build
 
 fi
 
 echo "Checking For Fedora  ISO Images in Destination."
 
-if find ~/VirtualBoxVMs/socios/ -name Fedora.iso | grep -q 'Fedora'; then
+if find ~/VirtualBoxVMs/socios/build -name Fedora.iso | grep -q 'Fedora'; then
 
 echo "Fedora ISO Image Available in Destination. Choose your partition Space."
 
@@ -25,7 +25,7 @@ wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download
 
 echo "Copying the ISO image file to Socios Destination"
 
-cp /tmp/Fedora.iso ~/VirtualBoxVMs/socios/
+cp /tmp/Fedora.iso ~/VirtualBoxVMs/socios/build
 
 rm -rf /tmp/cookies.txt
 
