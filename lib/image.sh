@@ -2,7 +2,7 @@
 
 cd ~
 
-if [ -d VirtualBoxVMs/socios/ ]; then
+if [ -d VirtualBoxVMs/socios/build ]; then
         echo "Desitination available"
 
 else
