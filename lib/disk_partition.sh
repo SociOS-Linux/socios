@@ -7,6 +7,7 @@ target_disk=$(diskutil list | awk '/Apple_APFS/ {print $7}')
 parent_identifier="$(diskutil info /dev/$default_disk | grep "Part of Whole" | awk '{print $4}')"
 $whole_disk=/dev/"$parent_identifier"
 
+#Total disk space availale in Mac machine
 space_available=$(diskutil info / | grep "Container Free Space" | awk '{print $4$5}')
 echo "You have $space_available of free space in your Mac machine"
 
