@@ -1,6 +1,6 @@
 # Booting a VM using MAC Physical Disk:
 
-1. The script first searches for the folder VirtualBox/socios, it removes the folder if present, it creates the folder if not. After all the partitions are done the Virtual Machine is created from the Virtual Box, the VM name is fixed to "Inception".
+1. The script first searches for the folder VirtualBox/socios, it removes the folder if present, it creates the folder if not. This process occurs in root folder of every mac machine. After all the partitions are done the Virtual Machine is created from the Virtual Box, the VM name is fixed to "Inception".
 
 ```
 cd ~
