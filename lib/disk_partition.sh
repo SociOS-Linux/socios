@@ -1,22 +1,25 @@
 #!/bin/bash
 #Automated script for create ing partition from APFS to Linux.
-#Default we are created for 30 Gb for New virtualbox VM.
-echo "Available disk partitions in mac machine"
-diskutil list
-
-echo "Recommended swap space for disk partition is minimum based on the RAM available to the system, it will allocate automatically from the current disk space"
-
-echo "checking the Apple_Apfs disk"
+echo "Checking the Apple_Apfs disk identifier from the Mac Machine"
 target_disk=$(diskutil list | awk '/Apple_APFS/ {print $7}')
 
-diskutil list
+#diskutil info /dev/disk1s2 | grep "Part of Whole" | awk '{print $4}'
+parent_identifier="$(diskutil info /dev/$default_disk | grep "Part of Whole" | awk '{print $4}')"
+$whole_disk=/dev/"$parent_identifier"
+
+
+#Total disk space availale in Mac machine
+space_available=$(diskutil info / | grep "Container Free Space" | awk '{print $4$5}')
+echo "You have $space_available of free space in your Mac machine"
+
+echo "Available disk partitions in your mac machine"
+diskutil list $whole_disk
+
 echo "The default disk for resizing is the standard Apple_APFS Container disk1 is $target_disk"
-echo "$target_disk"
 default_disk=$target_disk
-default_size=50
+default_size=150
 
-
-read -p "Ready to proceed with re-Partitioning of default disk? (Yes\No):" choice
+read -p "Ready to proceed with Re-Partitioning of default disk? (Yes\No):" choice
 
 case "$choice" in
       Yes|yes|y|Y|YES|"") Input=1;;
@@ -27,18 +30,15 @@ esac
 
 if [ $Input == 1 ]
 then
-
-    echo "Resizing the APFS container for partition named New_volume $default_disk $default_size"
-    total_space="$(diskutil info /dev/$default_disk | grep "Disk Size" | awk '{print $3}')"
-    crct_default_space="$(echo $total_space - $default_size | bc)"
-    sudo diskutil apfs resizeContainer "$default_disk" "$crct_default_space""g"
+   echo "Resizing the APFS container for partition named New_volume $default_disk $default_size"
+   total_space="$(diskutil info /dev/$default_disk | grep "Disk Size" | awk '{print $3}')"
+   crct_default_space="$(echo $total_space - $default_size | bc)"
+   sudo diskutil apfs resizeContainer "$default_disk" "$crct_default_space""g"
 else
-    diskutil list $default_disk
-    space_available=$(diskutil info / | grep "Container Free Space" | awk '{print $4$5}')
-    echo "You have $space_available of free space in your Mac machine"
-    echo "Provide the disk space want to use from the above list."
+    diskutil list
+    echo "Provide the disk space want to use for the above list."
     total_space="$(diskutil info /dev/$default_disk | grep "Disk Size" | awk '{print $3}')"
-        read -p "Provide the disk space want to allocate for Linux OS in numerals(e.g:40 for 40GB):  " size_input
+    read -p "Provide the disk space want to allocate for Linux OS in numerals(e.g:40 for 40GB):  " size_input
 	if [[ $size_input -le 30 ]]; then
 		read -p "Please Provide the disk space more than 30(e.g:40):  " size_input
 		crct_space="$(echo $total_space - $size_input | bc)"
@@ -50,10 +50,6 @@ else
 fi
 
 brew install gptfdisk
-
-#diskutil info /dev/disk1s2 | grep "Part of Whole" | awk '{print $4}'
-parent_identifier="$(diskutil info /dev/$default_disk | grep "Part of Whole" | awk '{print $4}')"
-whole_disk=/dev/"$parent_identifier"
 
 ram=$(system_profiler SPHardwareDataType | grep "Memory:" | awk '{print $2}')
 
