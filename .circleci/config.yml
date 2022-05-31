@@ -24,3 +24,6 @@ workflows:
   say-hello-workflow:
     jobs:
       - say-hello
+    filters:
+       branches:
+            only: main # only run build-job on the main branch  
