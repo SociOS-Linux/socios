@@ -1,3 +1,54 @@
+# How to publish a release
+
+TL;DR: Releases are published automatically whenever a new tag of the format X.Y.Z is pushed to the GitHub repository.
+
+## Create a tag and release draft
+
+All you have to do is create and push a new tag.
+
+In the command below, replace `<MAJOR.MINOR.PATCH>` with the actual version number you want to publish.
+
+```nohighlight
+export VERSION=<MAJOR.MINOR.PATCH>
+git checkout master
+git pull
+git tag -a ${VERSION} -m "Release version ${VERSION}"
+git push origin ${VERSION}
+```
+
+This will push your the new tag to the GitHub repository where it will show up as a tag without release.
+
+Follow CircleCI's progress in [https://circleci.com/gh/socios-linux/socios](https://app.circleci.com/pipelines/github/SociOS-Linux/socios). Do not do anything until CI is finished.
+
+CircleCI should have created a new Release draft. Edit this draft.
+
+## Edit the release draft and publish
+
+Open the [release draft](https://github.com/socios-linux/socios-setup/releases/) on Github.
+
+Edit the description to inform about what has changed since the last release. Save and publish the release.
+
+The release draft will attach itself to the tag you've pushed in the first step.
+
+## Release docs
+
+The socios-setup reference docs here: https://github.com/SociOS-Linux/sociosbrew-tap
+
+To update this, read the [Deploying](https://github.com/socios-linux/socios-setup) section in the socios-linux/socios-setup/docs.
+
+## Prerequisites
+
+CircleCI must be set up with certain environment variables:
+
+- `CODE_SIGNING_CERT_BUNDLE_BASE64` - Base64 encoded PKCS#12 key/cert bundle used for signing binaries
+- `CODE_SIGNING_CERT_BUNDLE_PASSWORD` - Password for the above bundle
+- `RELEASE_TOKEN` - A GitHub token with the permission to write to repositories
+  - [socios-linux/socios-setup](https://github.com/socios-linux/socios-setup)
+  - [socios-linux/sociosbrew-tap](https://github.com/socios-linux/sociosbrew-tap)
+- `GITHUB_USER_EMAIL` - Email address of the github user owning the personal token above
+- `GITHUB_USER_NAME` - Username of the above github user
+
+
 # Socios Homebrew Formula 
 
 ### Homebrew Formula
@@ -15,14 +66,14 @@ The second GitHub repo contains the homebrew formula with the ruby file (homebre
 We need to clone the First repository(socios) in a specific path. Using the below Git clone command
 
 ```bash
-$ git clone https://github.com/SociOS-Linux/socios.git
+$ git clone https://github.com/SociOS-Linux/socios-setup.git
 ```
 
 <img src="https://i.ibb.co/Jr1jtVk/image-1.png" width="600px">
 
-Switch into that cloned repository folder(socios) then we need to place the updated script packages in that folder(socios).
+Switch into that cloned repository folder(socios-setup) then we need to place the updated script packages in that folder(socios).
 
-By using the git commands. We need to push the updated files to the First repository(socios)
+By using the git commands. We need to push the updated files to the First repository(socios-setup)
 
 ```bash
 $ git status && git branch
@@ -33,7 +84,7 @@ $ git add .
 <img src="https://i.ibb.co/FVV6dCb/image-2.png" width="600px">
 
 ```bash
-$ git commit -am "Sociois: Updated to the latest version"
+$ git commit -am "Socios: Updated to the latest version <MAJOR.MINOR.PATCH>"
 ```
 
 For every commit, we need to update the commit message.
@@ -43,9 +94,9 @@ For every commit, we need to update the commit message.
 ```
 	$ git push -u origin main //  git push -u origin develop
 
-	$ git tag v1.3.0
+	$ git tag v<MAJOR.MINOR.PATCH>
 
-	$ git push origin v1.3.0
+	$ git push origin v<MAJOR.MINOR.PATCH>
 ```
 
 <img src="https://i.ibb.co/GP8z7yv/image-4.png" width="600px">
