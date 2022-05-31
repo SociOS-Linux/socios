@@ -14,10 +14,6 @@ chmod -R 755 VirtualBoxVMs/socios
 DESTINATION=~/VirtualBoxVMs/socios
 ISO=~/socios/image
 
-
-echo "$target_disk"
-default_disk=$target_disk
-
 #fetching the whole disk to provide permission for the partitions
 parent_identifier="$(diskutil info /dev/$default_disk | grep "Part of Whole" | awk '{print $4}')"
 whole_disk=/dev/"$parent_identifier"
