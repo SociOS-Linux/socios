@@ -22,7 +22,7 @@ Please provide the last number you see in the Linux Swap identifier(eg:3 for $wh
 3. After the partition numbers are entered in, all the partitions are pointed to the vmdk file that is created for the virtual machine. The Mac physical disk is converted to storage space,swap and boot for Virtual Machine.
 
 ```
-sudo  vboxmanage  internalcommands  createrawvmdk  -filename  "/User/username/vmname/linux.vmdk"  -rawdisk  /dev/disk0  -partitions  4,5,6,7
+sudo  vboxmanage  internalcommands  createrawvmdk  -filename  "/User/username/Inception/Inception.vmdk"  -rawdisk  /dev/disk0  -partitions  4,5,6,7
 ```
 
 4. The Mac username is asked from the user for providing necessary permission to the VMDK file and all the partition.
