@@ -4,11 +4,11 @@
 
 ```
 cd ~
-if [ -d socios/VirtualBoxVMs ]; then
-        rm -rf socios/VirtualBoxVMs
+if [ -d VirtualBoxVMs/socios ]; then
+        rm -rf VirtualBoxVMs/socios
 fi
 
-mkdir -p socios/VirtualBoxVMs
+mkdir -p VirtualBoxVMs/socios
 ```
 - At first, the script check for the required folder in the root. If not present, it created it and provides the permission along with it.
 
