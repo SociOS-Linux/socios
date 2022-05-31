@@ -11,7 +11,7 @@ mkdir -p VirtualBoxVMs/socios
 chmod -R 755 VirtualBoxVMs/socios
 
 # Destination to save the VDI File 
-DESTINATION=~/socios/VirtualBoxVMs
+DESTINATION=~/VirtualBoxVMs/socios
 ISO=~/socios/image
 
 target_disk=$(diskutil list | awk '/Apple_APFS/ {print $7}')
