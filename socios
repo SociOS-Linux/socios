@@ -15,7 +15,7 @@ function createvm {
 
 #Uninstalling VirtualBox_VM
 
-function unmount {
+function disk-partition {
 	source $Cellar/*/lib/disk_partition.sh
 }
 
@@ -33,8 +33,8 @@ function help {
 	echo "init           Check the environment to install Socios"
 	echo "--help         Print this Help menu"
 	echo "--version      Print the current version"	
-	echo "unmount         unmount the current disk space in MAC Machine"
-	echo "purge           Uninstall the Virtualbox and GDisk"
+	echo "disk-partition        Unmount the current disk space in MAC Machine"
+	echo "purge          Uninstall the Virtualbox and GDisk"
 }
 
 #Version of Socios formula
@@ -61,8 +61,8 @@ for arg in "$@"; do
   if [[ "$arg" = --version ]]; then
 	version
   fi
-  if [[ "$arg" = unmount ]]; then
-	unmount
+  if [[ "$arg" = disk-partition ]]; then
+	disk-partition
   fi
   if [[ "$arg" = purge ]]; then
 	purge
