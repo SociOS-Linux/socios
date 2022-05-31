@@ -10,7 +10,7 @@ echo "The default disk for resizing is the standard Apple_APFS Container disk1 i
 default_disk=$target_disk
 default_size=150
 
-read -p "Ready to proceed with re-Partitioning of default disk? (Yes\No):" choice
+read -p "Ready to proceed with Re-Partitioning of default disk? (Yes\No):" choice
 
 case "$choice" in
       Yes|yes|y|Y|YES|"") Input=1;;
