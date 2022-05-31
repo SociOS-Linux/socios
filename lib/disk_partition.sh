@@ -13,8 +13,8 @@ default_size=150
 read -p "Ready to proceed with Re-Partitioning of default disk? (Yes\No):" choice
 
 case "$choice" in
-      Yes|yes|y|Y|YES|"") Input=1;;
-      No|no|n|N|NO|"") Input=0;;
+      Yes|yes|y|Y|YES|"") Input=0;;
+      No|no|n|N|NO|"") Input=1;;
       * ) { echo "Invalid option. Please select the correct option."; exit 1; };;
       No|no) Input=0;;
 esac
