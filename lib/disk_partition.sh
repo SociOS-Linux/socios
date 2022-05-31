@@ -3,6 +3,9 @@
 echo "Checking the Apple_Apfs disk identifier from the Mac Machine"
 target_disk=$(diskutil list | awk '/Apple_APFS/ {print $7}')
 
+space_available=$(diskutil info / | grep "Container Free Space" | awk '{print $4$5}')
+echo "You have $space_available of free space in your Mac machine"
+
 echo "Available disk partitions in your mac machine"
 diskutil list
 
@@ -28,9 +31,7 @@ then
    # sudo diskutil apfs resizeContainer "$default_disk" "$crct_default_space""g"
 else
     diskutil list
-    space_available=$(diskutil info / | grep "Container Free Space" | awk '{print $4$5}')
-    echo "You have $space_available of free space in your Mac machine"
-    echo "Provide the disk space want to use from the above list."
+    echo "Provide the disk space want to use for the above list."
     total_space="$(diskutil info /dev/$default_disk | grep "Disk Size" | awk '{print $3}')"
         read -p "Provide the disk space want to allocate for Linux OS in numerals(e.g:40 for 40GB):  " size_input
 	if [[ $size_input -le 30 ]]; then
