@@ -24,8 +24,6 @@ whole_disk=/dev/"$parent_identifier"
 echo "Available Guest OS on MAC Machine "
 VBoxManage list ostypes | grep -i Fedora
 
-echo "Enter the VM name: "
-read name
 MACHINENAME=Inception
 
 #Creating virtual machine
