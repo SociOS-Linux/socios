@@ -3,7 +3,7 @@
 echo "Get identifier from the Mac Machine"
 target_disk=$(diskutil list | awk '/Apple_APFS/ {print $7}')
 
-echo "Available disk partitions in mac machine"
+echo "Available disk partitions in your mac machine"
 diskutil list
 
 echo "checking the Apple_Apfs disk"
