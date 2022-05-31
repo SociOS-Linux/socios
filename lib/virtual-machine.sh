@@ -26,7 +26,7 @@ VBoxManage list ostypes | grep -i Fedora
 
 echo "Enter the VM name: "
 read name
-MACHINENAME=$name-$(date +%d-%m-%Y_%H-%M-%S)
+MACHINENAME=Inception
 
 #Creating virtual machine
 echo "Creating a $MACHINENAME virtual machine"
