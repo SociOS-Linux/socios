@@ -14,8 +14,7 @@ chmod -R 755 VirtualBoxVMs/socios
 DESTINATION=~/VirtualBoxVMs/socios
 ISO=~/socios/image
 
-#fetching and printing the current container where we are creating the VM
-target_disk=$(diskutil list | awk '/Apple_APFS/ {print $7}')
+
 echo "$target_disk"
 default_disk=$target_disk
 
