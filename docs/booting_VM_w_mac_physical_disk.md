@@ -18,6 +18,7 @@ mkdir -p VirtualBoxVMs/socios
 Please provide the last number you see in the Linux Swap identifier(eg:3 for $whole_disk"s3") 
 ```
 -Mention the last number in the identifier, if an identifier "disk0s4" is shown give the number 4 and if "disk0s5" is given give 5
+-The user is asked for the identifier for all the volumes
 
 3. After the partition numbers are entered in, all the partitions are pointed to the vmdk file that is created for the virtual machine. The Mac physical disk is converted to storage space,swap and boot for Virtual Machine.
 
