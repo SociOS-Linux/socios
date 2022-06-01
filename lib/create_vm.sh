@@ -54,7 +54,7 @@ sudo  chmod  go+rw  $whole_disk"s"$third
 sudo  chmod  go+rw  $whole_disk"s"$fourth
 sudo  chmod  go+rw  $whole_disk
 
-read -p "Enter the name of your mac user:  " USER
+read -p "Enter the MAC Machine User Name:  " USER
 
 
 #Create Disk and connect Debian Iso
