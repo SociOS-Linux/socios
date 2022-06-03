@@ -32,7 +32,7 @@ function help {
 	echo "build          Create the virtual machine in VirtualBox"
 	echo "init           Check the environment to install Socios"
 	echo "--help         Print this Help menu"
-	echo "--version      Print the current version"	
+	echo "--version      Print the current version"
 	echo "disk-partition        Unmount the current disk space in MAC Machine"
 	echo "purge          Uninstall the Virtualbox and GDisk"
 }
