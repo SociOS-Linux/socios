@@ -21,7 +21,7 @@ Opt-in community automation commons for SourceOS: CI/CD, update automation, trai
   - mandatory dependency of SourceOS
   - public docs site
   - canonical typed-contract registry
-- **Semantic direction:** this repo should eventually publish an automation-focused repo descriptor that references the shared SourceOS/SociOS vocabulary from `sourceos-spec`.
+- **Semantic direction:** this repo should eventually publish an automation-focused repo descriptor that references the shared SourceOS/SociOS vocabulary from `SourceOS-Linux/sourceos-spec`.
 
 ## socios in the SourceOS ecosystem (opt-in)
 
