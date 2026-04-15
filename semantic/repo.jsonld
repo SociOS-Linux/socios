@@ -1,0 +1,31 @@
+{
+  "@context": "https://raw.githubusercontent.com/SourceOS-Linux/sourceos-spec/main/semantic/context.jsonld",
+  "@id": "urn:sourceos:repo:SociOS-Linux:socios",
+  "@type": ["RepoDescriptor", "Repository"],
+  "name": "socios",
+  "description": "Opt-in community automation commons for SourceOS.",
+  "repositoryFullName": "SociOS-Linux/socios",
+  "repoUrl": "https://github.com/SociOS-Linux/socios",
+  "organization": "SociOS-Linux",
+  "defaultBranch": "main",
+  "semanticDescriptorVersion": "0.1.0",
+  "topologyRole": "roleAutomationCommons",
+  "connectsTo": [
+    "urn:sourceos:repo:SociOS-Linux:SourceOS",
+    "urn:sourceos:repo:SociOS-Linux:agentos-spine",
+    "urn:sourceos:repo:SourceOS-Linux:sourceos-spec",
+    "urn:sourceos:repo:SociOS-Linux:workstation-contracts",
+    "urn:sourceos:repo:SocioProphet:sociosphere",
+    "urn:sourceos:repo:SociOS-Linux:socioslinux-web"
+  ],
+  "optionalLayerFor": [
+    "urn:sourceos:repo:SociOS-Linux:SourceOS"
+  ],
+  "consumesVocabularyFrom": "urn:sourceos:repo:SourceOS-Linux:sourceos-spec",
+  "notThisRepo": [
+    "base OS substrate",
+    "mandatory dependency of SourceOS",
+    "public docs site",
+    "canonical typed-contract registry"
+  ]
+}
