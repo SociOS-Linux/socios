@@ -1,0 +1,15 @@
+# Placeholder fog catalog entry for the compute worker agent.
+apiVersion: socios.dev/v1alpha1
+kind: FogCatalogEntry
+metadata:
+  name: fog-worker
+spec:
+  category: agent-runtime
+  source:
+    kind: image
+    ref: ghcr.io/socioprophet/fog-worker
+  version: 0.0.0-placeholder
+  digest: sha256:REPLACE_ME
+  notes:
+    - Replace with a digest-pinned image reference before use.
+    - Intended to execute FogCompute work orders and emit usage receipts.
