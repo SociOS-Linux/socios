@@ -1,0 +1,13 @@
+apiVersion: socios.dev/v1alpha1
+kind: FogCatalogEntry
+metadata:
+  name: topolvm
+spec:
+  category: local-storage
+  source:
+    kind: helm
+    ref: topolvm/topolvm
+  version: pending-pin
+  digest: ""
+  notes:
+    - Placeholder only. This entry must fail admission until a real digest pin is supplied.
