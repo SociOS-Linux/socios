@@ -1,0 +1,14 @@
+# Placeholder fog catalog entry for local-storage / TopoLVM lane.
+apiVersion: socios.dev/v1alpha1
+kind: FogCatalogEntry
+metadata:
+  name: topolvm
+spec:
+  category: local-storage
+  source:
+    kind: helm
+    ref: topolvm/topolvm
+  version: 0.0.0-placeholder
+  digest: sha256:REPLACE_ME
+  notes:
+    - Replace with digest-pinned chart or artifact reference before use.
