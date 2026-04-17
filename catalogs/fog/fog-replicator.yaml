@@ -1,0 +1,15 @@
+# Placeholder fog catalog entry for the topic replication agent.
+apiVersion: socios.dev/v1alpha1
+kind: FogCatalogEntry
+metadata:
+  name: fog-replicator
+spec:
+  category: agent-runtime
+  source:
+    kind: image
+    ref: ghcr.io/socioprophet/fog-replicator
+  version: 0.0.0-placeholder
+  digest: sha256:REPLACE_ME
+  notes:
+    - Replace with a digest-pinned image reference before use.
+    - Intended to replicate Hypercore topic state across enrolled nodes.
