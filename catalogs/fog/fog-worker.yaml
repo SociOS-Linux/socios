@@ -1,0 +1,14 @@
+apiVersion: socios.dev/v1alpha1
+kind: FogCatalogEntry
+metadata:
+  name: fog-worker
+spec:
+  category: agent-runtime
+  source:
+    kind: image
+    ref: ghcr.io/socioprophet/fog-worker
+  version: pending-pin
+  digest: ""
+  notes:
+    - Placeholder only. This entry must fail admission until a real digest pin is supplied.
+    - Intended to execute FogCompute work orders and emit usage receipts.
