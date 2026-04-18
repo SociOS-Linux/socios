@@ -24,6 +24,8 @@ This repo is the right place to carry or publish signed catalogs for:
 - installer profile references
 - conformance policy packs
 
+The current placeholder catalog entries are **intentionally non-admissible** until replaced with real digest pins.
+
 ### 2. Opt-in update automation
 
 Once a node is enrolled, this repo may drive:
@@ -55,7 +57,7 @@ Those remain upstream in SourceOS, sourceos-spec, and the related runtime/confor
 ## Expected follow-up
 
 Future PRs here should add:
-1. fog-related signed catalog structures
-2. policy packs controlling admissible fog updates
+1. real digest-pinned fog catalogs replacing the non-admissible placeholders
+2. richer policy packs controlling admissible fog updates
 3. rollout receipts / evidence patterns for fog artifacts
 4. explicit opt-in enrollment docs for fog nodes
