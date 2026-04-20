@@ -1,0 +1,71 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: sourceos-customize-live-iso
+spec:
+  description: >-
+    First FCOS/SourceOS live ISO pipeline scaffold: customize a live ISO from
+    generated ignition/config inputs and publish it into a Katello custom file repo.
+  params:
+    - name: baseIsoPath
+      type: string
+    - name: liveIgnitionPath
+      type: string
+      default: ""
+    - name: destIgnitionPath
+      type: string
+      default: ""
+    - name: networkDir
+      type: string
+      default: ""
+    - name: outputIsoPath
+      type: string
+      default: out/sourceos-live.iso
+    - name: katelloServerUrl
+      type: string
+    - name: katelloOrganization
+      type: string
+      default: SourceOS
+    - name: katelloProduct
+      type: string
+    - name: katelloRepository
+      type: string
+  workspaces:
+    - name: source
+  tasks:
+    - name: customize-live-iso
+      taskRef:
+        name: customize-live-iso
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: baseIsoPath
+          value: $(params.baseIsoPath)
+        - name: liveIgnitionPath
+          value: $(params.liveIgnitionPath)
+        - name: destIgnitionPath
+          value: $(params.destIgnitionPath)
+        - name: networkDir
+          value: $(params.networkDir)
+        - name: outputIsoPath
+          value: $(params.outputIsoPath)
+
+    - name: publish-katello
+      runAfter: [customize-live-iso]
+      taskRef:
+        name: publish-katello-file-repo
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: serverUrl
+          value: $(params.katelloServerUrl)
+        - name: organization
+          value: $(params.katelloOrganization)
+        - name: product
+          value: $(params.katelloProduct)
+        - name: repository
+          value: $(params.katelloRepository)
+        - name: artifactPath
+          value: $(params.outputIsoPath)
