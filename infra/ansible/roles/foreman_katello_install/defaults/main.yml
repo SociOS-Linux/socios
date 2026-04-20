@@ -1,0 +1,11 @@
+---
+socios_foreman_dry_run: true
+socios_foreman_servername: foreman.example.com
+socios_foreman_organization: SourceOS
+socios_foreman_location: Default
+socios_foreman_admin_username: admin
+socios_foreman_admin_password: null
+socios_foreman_lifecycle_environments:
+  - dev
+  - qa
+  - prod
