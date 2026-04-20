@@ -1,0 +1,47 @@
+---
+- name: Assert supported management host substrate
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - (ansible_distribution_major_version | int) >= 9
+      - ansible_architecture in ['x86_64', 'amd64']
+    fail_msg: "Foreman/Katello management hosts must run on dedicated EL9 x86_64-class systems."
+
+- name: Validate admin password is provided when not in dry-run mode
+  ansible.builtin.assert:
+    that:
+      - socios_foreman_admin_password is not none
+      - socios_foreman_admin_password | length > 0
+    fail_msg: "Set socios_foreman_admin_password when socios_foreman_dry_run=false."
+  when: not socios_foreman_dry_run
+
+- name: Check foreman-installer availability
+  ansible.builtin.command:
+    argv: ["foreman-installer", "--help"]
+  changed_when: false
+
+- name: Explain dry-run posture
+  ansible.builtin.debug:
+    msg:
+      - "Dry-run mode enabled; Foreman/Katello installer command is not being executed."
+      - "Set socios_foreman_dry_run=false after package/repository bootstrap is in place."
+  when: socios_foreman_dry_run
+
+- name: Run Foreman/Katello installer
+  ansible.builtin.command:
+    argv:
+      - foreman-installer
+      - --scenario
+      - katello
+      - --foreman-servername
+      - "{{ socios_foreman_servername }}"
+      - --foreman-initial-organization
+      - "{{ socios_foreman_organization }}"
+      - --foreman-initial-location
+      - "{{ socios_foreman_location }}"
+      - --foreman-initial-admin-username
+      - "{{ socios_foreman_admin_username }}"
+      - --foreman-initial-admin-password
+      - "{{ socios_foreman_admin_password }}"
+  no_log: true
+  when: not socios_foreman_dry_run
