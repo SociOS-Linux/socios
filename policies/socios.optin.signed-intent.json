@@ -1,0 +1,50 @@
+{
+  "id": "urn:srcos:policy:socios.optin.signed-intent",
+  "type": "Policy",
+  "specVersion": "2.0.0",
+  "name": "socios.optin.signed-intent",
+  "scope": {
+    "subjects": [
+      {"kind": "user"},
+      {"kind": "service"},
+      {"kind": "app"},
+      {"kind": "workload"},
+      {"kind": "any"}
+    ],
+    "objects": [
+      {"objectType": "any", "match": {"resourceKind": "skill"}}
+    ],
+    "purposes": [
+      "os.bootstrap",
+      "automation"
+    ]
+  },
+  "rules": [
+    {
+      "effect": "permit",
+      "operations": ["transform"],
+      "condition": {
+        "language": "cel",
+        "expr": {
+          "cel": "context.signedIntent == true"
+        },
+        "notes": "Permit skill execution only when a user-signed intent record is present (opt-in)."
+      }
+    },
+    {
+      "effect": "deny",
+      "operations": ["transform"],
+      "condition": {
+        "language": "cel",
+        "expr": {
+          "cel": "context.signedIntent != true"
+        },
+        "notes": "Deny if intent is missing."
+      }
+    }
+  ],
+  "obligations": [
+    {"name": "log_access", "when": "runtime", "params": {"channel": "local"}},
+    {"name": "retain_provenance", "when": "post", "params": {"mode": "worm"}}
+  ]
+}

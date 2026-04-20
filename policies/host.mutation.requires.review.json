@@ -1,0 +1,49 @@
+{
+  "id": "urn:srcos:policy:host.mutation.requires.review",
+  "type": "Policy",
+  "specVersion": "2.0.0",
+  "name": "host.mutation.requires.review",
+  "scope": {
+    "subjects": [
+      {"kind": "user"},
+      {"kind": "service"},
+      {"kind": "workload"},
+      {"kind": "any"}
+    ],
+    "objects": [
+      {"objectType": "any", "match": {"resourceKind": "host-mutation"}}
+    ],
+    "purposes": [
+      "os.bootstrap",
+      "host.mutation"
+    ]
+  },
+  "rules": [
+    {
+      "effect": "permit",
+      "operations": ["write"],
+      "condition": {
+        "language": "cel",
+        "expr": {
+          "cel": "context.reviewApproved == true && context.rollbackPlanPresent == true"
+        },
+        "notes": "Permit host mutation only with explicit review approval and an explicit rollback plan."
+      }
+    },
+    {
+      "effect": "deny",
+      "operations": ["write"],
+      "condition": {
+        "language": "cel",
+        "expr": {
+          "cel": "!(context.reviewApproved == true && context.rollbackPlanPresent == true)"
+        },
+        "notes": "Deny if review/rollback requirements are not satisfied."
+      }
+    }
+  ],
+  "obligations": [
+    {"name": "log_access", "when": "runtime", "params": {"channel": "local"}},
+    {"name": "retain_provenance", "when": "post", "params": {"mode": "worm"}}
+  ]
+}
