@@ -1,0 +1,57 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: customize-live-iso
+spec:
+  description: >-
+    Scaffold task for customizing a Fedora CoreOS live ISO with live/destination
+    ignition and optional embedded network material.
+  params:
+    - name: toolImage
+      type: string
+      description: Image containing coreos-installer.
+      default: quay.io/coreos/coreos-installer:release
+    - name: baseIsoPath
+      type: string
+      description: Path to the base FCOS ISO inside the workspace.
+    - name: liveIgnitionPath
+      type: string
+      description: Path to the live ignition fragment.
+      default: ""
+    - name: destIgnitionPath
+      type: string
+      description: Path to the destination ignition fragment.
+      default: ""
+    - name: networkDir
+      type: string
+      description: Optional directory of NetworkManager keyfiles to embed.
+      default: ""
+    - name: outputIsoPath
+      type: string
+      description: Output path for the customized ISO inside the workspace.
+  workspaces:
+    - name: source
+      description: SourceOS build context and generated ignition/config artifacts.
+  steps:
+    - name: customize
+      image: $(params.toolImage)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        args=(iso customize --output "$(params.outputIsoPath)" "$(params.baseIsoPath)")
+
+        if [[ -n "$(params.liveIgnitionPath)" ]]; then
+          args+=(--live-ignition "$(params.liveIgnitionPath)")
+        fi
+        if [[ -n "$(params.destIgnitionPath)" ]]; then
+          args+=(--dest-ignition "$(params.destIgnitionPath)")
+        fi
+        if [[ -n "$(params.networkDir)" ]]; then
+          while IFS= read -r -d '' file; do
+            args+=(--network-keyfile "$file")
+          done < <(find "$(params.networkDir)" -type f -print0)
+        fi
+
+        coreos-installer "${args[@]}"
