@@ -38,6 +38,11 @@ socios_smart_proxy_registration_verify: true
 socios_smart_proxy_auto_discover_proxy_ids: true
 socios_smart_proxy_receipt_dir: /var/lib/socios/sourceos
 socios_smart_proxy_receipt_path: "{{ socios_smart_proxy_receipt_dir }}/smart-proxy-receipt.json"
+socios_smart_proxy_receipt_attestation_enabled: false
+socios_smart_proxy_receipt_attestation_provider: cosign
+socios_smart_proxy_receipt_attestation_identity_ref: null
+socios_smart_proxy_receipt_attestation_path: "{{ socios_smart_proxy_receipt_path }}.attestation.json"
+socios_smart_proxy_receipt_attestation_blob_path: "{{ socios_smart_proxy_receipt_path }}.sig"
 socios_smart_proxy_network_bindings_enabled: true
 socios_smart_proxy_domains:
   - name: sourceos.local
