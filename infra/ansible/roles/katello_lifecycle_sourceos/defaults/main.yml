@@ -5,6 +5,8 @@ socios_katello_organization: SourceOS
 socios_katello_content_view_promote_from_lifecycle_environment: Library
 socios_katello_receipt_dir: /var/lib/socios/sourceos
 socios_katello_lifecycle_receipt_path: "{{ socios_katello_receipt_dir }}/katello-lifecycle-receipt.json"
+socios_katello_activation_key_verify_overrides: true
+socios_katello_activation_key_product_content_access_mode_all: true
 socios_katello_lifecycle_environments:
   - name: dev
     prior: Library
