@@ -4,9 +4,10 @@ metadata:
   name: sourceos-build-smoke-runner-image
 spec:
   description: >-
-    Check task image refs, verify base image, build, optionally publish, generate SBOM,
-    scan, emit provenance, bundle evidence, optionally attest, optionally promote, and
-    optionally publish the evidence receipt for the SourceOS smoke-runner image.
+    Check task image refs, resolve task image digests, verify base image, build,
+    optionally publish, generate SBOM, scan, emit provenance, bundle evidence,
+    optionally attest, optionally promote, and optionally publish the evidence receipt
+    for the SourceOS smoke-runner image.
   params:
     - name: imageRef
       type: string
@@ -89,8 +90,33 @@ spec:
         - name: utilityImage
           value: $(params.utilityImage)
 
-    - name: verify-smoke-runner-base-image
+    - name: resolve-smoke-runner-task-image-digests
       runAfter: [check-smoke-runner-task-images]
+      taskRef:
+        name: resolve-smoke-runner-task-image-digests
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: resolverImage
+          value: $(params.inspectorImage)
+        - name: builderImage
+          value: $(params.builderImage)
+        - name: sbomImage
+          value: $(params.sbomImage)
+        - name: scannerImage
+          value: $(params.scannerImage)
+        - name: attestImage
+          value: $(params.signingImage)
+        - name: publisherImage
+          value: $(params.publisherImage)
+        - name: inspectorImage
+          value: $(params.inspectorImage)
+        - name: utilityImage
+          value: $(params.utilityImage)
+
+    - name: verify-smoke-runner-base-image
+      runAfter: [resolve-smoke-runner-task-image-digests]
       taskRef:
         name: verify-smoke-runner-base-image
       workspaces:
