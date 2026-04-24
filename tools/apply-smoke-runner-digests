@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+"""Apply verified smoke-runner image digests from pipeline receipts.
+
+This tool intentionally does not resolve registry digests itself. It consumes the
+receipts emitted by the pipeline and replaces digest placeholders in policy files
+only when every required digest is present.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PLACEHOLDER = "REPLACE_WITH_VERIFIED_DIGEST"
+SHA_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+TASK_IMAGE_NAME_MAP = {
+    "builderImage": "builderImage",
+    "sbomImage": "sbomImage",
+    "scannerImage": "scannerImage",
+    "attestImage": "signingImage",
+    "publisherImage": "publisherImage",
+    "inspectorImage": "inspectorImage",
+    "utilityImage": "shellUtilityImage",
+}
+
+
+def die(msg: str) -> None:
+    print(f"[apply-smoke-runner-digests] ERROR: {msg}", file=sys.stderr)
+    raise SystemExit(2)
+
+
+def load_json(path: Path) -> dict:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        die(f"receipt not found: {path}")
+    except json.JSONDecodeError as exc:
+        die(f"invalid JSON in {path}: {exc}")
+
+
+def validate_digest(value: str, label: str) -> str:
+    if not isinstance(value, str) or not SHA_RE.match(value):
+        die(f"{label} is not a sha256 digest: {value!r}")
+    return value
+
+
+def replace_yaml_scalar_after_key(text: str, parent_key: str, child_key: str, new_value: str) -> str:
+    lines = text.splitlines()
+    in_parent = False
+    parent_indent = None
+    replaced = False
+    out: list[str] = []
+
+    for line in lines:
+        stripped = line.strip()
+        indent = len(line) - len(line.lstrip(" "))
+        if stripped == f"{parent_key}:":
+            in_parent = True
+            parent_indent = indent
+            out.append(line)
+            continue
+        if in_parent and parent_indent is not None and indent <= parent_indent and stripped:
+            in_parent = False
+        if in_parent and stripped.startswith(f"{child_key}:"):
+            out.append(" " * indent + f"{child_key}: {new_value}")
+            replaced = True
+            continue
+        out.append(line)
+
+    if not replaced:
+        die(f"did not find {parent_key}.{child_key} in policy file")
+    return "\n".join(out) + "\n"
+
+
+def replace_task_digest(text: str, task_name: str, digest: str) -> str:
+    lines = text.splitlines()
+    in_item = False
+    item_indent = None
+    replaced = False
+    out: list[str] = []
+
+    for line in lines:
+        stripped = line.strip()
+        indent = len(line) - len(line.lstrip(" "))
+        if stripped == f"- name: {task_name}":
+            in_item = True
+            item_indent = indent
+            out.append(line)
+            continue
+        if in_item and item_indent is not None and indent <= item_indent and stripped.startswith("- name:"):
+            in_item = False
+        if in_item and stripped.startswith("digest:"):
+            out.append(" " * indent + f"digest: {digest}")
+            replaced = True
+            continue
+        out.append(line)
+
+    if not replaced:
+        die(f"did not find digest field for task image {task_name}")
+    return "\n".join(out) + "\n"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(prog="apply-smoke-runner-digests")
+    parser.add_argument("--base-receipt", default=".workstation/reports/images/sourceos-smoke-runner-base-image.json")
+    parser.add_argument("--task-receipt", default=".workstation/reports/images/sourceos-smoke-runner-task-image-digests.json")
+    parser.add_argument("--image-policy", default="images/sourceos-smoke-runner/image-policy.yaml")
+    parser.add_argument("--task-policy", default="images/sourceos-smoke-runner/task-image-policy.yaml")
+    parser.add_argument("--check", action="store_true", help="validate inputs and report planned replacements without writing")
+    args = parser.parse_args()
+
+    base_receipt = load_json(ROOT / args.base_receipt)
+    task_receipt = load_json(ROOT / args.task_receipt)
+
+    base_digest = validate_digest(str(base_receipt.get("resolvedDigest", "")), "base resolvedDigest")
+
+    task_digests: dict[str, str] = {}
+    for receipt_key, policy_name in TASK_IMAGE_NAME_MAP.items():
+        obj = task_receipt.get(receipt_key) or {}
+        digest = validate_digest(str(obj.get("digest", "")), f"{receipt_key}.digest")
+        task_digests[policy_name] = digest
+
+    image_policy_path = ROOT / args.image_policy
+    task_policy_path = ROOT / args.task_policy
+    image_text = image_policy_path.read_text(encoding="utf-8")
+    task_text = task_policy_path.read_text(encoding="utf-8")
+
+    new_image_text = replace_yaml_scalar_after_key(image_text, "baseImage", "digest", base_digest)
+    new_task_text = task_text
+    for policy_name, digest in task_digests.items():
+        new_task_text = replace_task_digest(new_task_text, policy_name, digest)
+
+    if args.check:
+        print("[apply-smoke-runner-digests] OK: receipts valid; policy files can be updated")
+        return 0
+
+    image_policy_path.write_text(new_image_text, encoding="utf-8")
+    task_policy_path.write_text(new_task_text, encoding="utf-8")
+    print(f"[apply-smoke-runner-digests] updated {image_policy_path.relative_to(ROOT)}")
+    print(f"[apply-smoke-runner-digests] updated {task_policy_path.relative_to(ROOT)}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
