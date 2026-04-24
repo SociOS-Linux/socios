@@ -4,9 +4,9 @@ metadata:
   name: sourceos-build-smoke-runner-image
 spec:
   description: >-
-    Build, optionally publish, generate SBOM, scan, emit provenance, bundle evidence,
-    optionally attest, and optionally promote the SourceOS smoke-runner image used by
-    live ISO smoke checks.
+    Verify base image, build, optionally publish, generate SBOM, scan, emit provenance,
+    bundle evidence, optionally attest, and optionally promote the SourceOS smoke-runner
+    image used by live ISO smoke checks.
   params:
     - name: imageRef
       type: string
@@ -29,9 +29,6 @@ spec:
     - name: attestEvidence
       type: string
       default: "false"
-    - name: promote
-      type: string
-      default: "false"
     - name: builderImage
       type: string
       default: quay.io/buildah/stable:latest
@@ -47,13 +44,31 @@ spec:
     - name: publisherImage
       type: string
       default: quay.io/skopeo/stable:latest
+    - name: inspectorImage
+      type: string
+      default: quay.io/skopeo/stable:latest
     - name: failOnSeverity
       type: string
       default: high
   workspaces:
     - name: source
   tasks:
+    - name: verify-smoke-runner-base-image
+      taskRef:
+        name: verify-smoke-runner-base-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: baseImage
+          value: $(params.baseImage)
+        - name: requirePinnedBase
+          value: $(params.requirePinnedBase)
+        - name: inspectorImage
+          value: $(params.inspectorImage)
+
     - name: build-smoke-runner-image
+      runAfter: [verify-smoke-runner-base-image]
       taskRef:
         name: build-smoke-runner-image
       workspaces:
