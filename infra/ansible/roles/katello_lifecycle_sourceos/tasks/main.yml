@@ -169,6 +169,7 @@
       - --to-lifecycle-environment
       - "{{ item.1.name }}"
   loop: "{{ socios_katello_content_views | product(socios_katello_lifecycle_environments) | list }}"
+  register: socios_content_view_promote_results
   when: not socios_katello_lifecycle_dry_run
 
 - name: Check SourceOS activation keys
@@ -236,4 +237,31 @@
       - --value
       - "{{ item.1.value | string | lower }}"
   loop: "{{ socios_katello_activation_keys | subelements('content_overrides', skip_missing=True) }}"
+  register: socios_activation_key_override_results
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Ensure SourceOS lifecycle receipt directory exists
+  ansible.builtin.file:
+    path: "{{ socios_katello_receipt_dir }}"
+    state: directory
+    mode: "0750"
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Emit SourceOS Katello lifecycle receipt scaffold
+  ansible.builtin.copy:
+    dest: "{{ socios_katello_lifecycle_receipt_path }}"
+    mode: "0640"
+    content: |
+      {{ {
+        'apiVersion': 'socios.sourceos.ai/v0',
+        'kind': 'KatelloLifecycleReceipt',
+        'organization': socios_katello_organization,
+        'serverUrl': socios_katello_server_url,
+        'contentViews': socios_katello_content_views,
+        'lifecycleEnvironments': socios_katello_lifecycle_environments,
+        'activationKeys': socios_katello_activation_keys,
+        'contentViewVersionLists': (socios_content_view_version_lists.results | default([])),
+        'contentViewPromotions': (socios_content_view_promote_results.results | default([])),
+        'activationKeyOverrides': (socios_activation_key_override_results.results | default([]))
+      } | to_nice_json }}
   when: not socios_katello_lifecycle_dry_run
