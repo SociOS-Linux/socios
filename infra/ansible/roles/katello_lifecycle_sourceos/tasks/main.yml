@@ -151,6 +151,22 @@
   changed_when: false
   when: not socios_katello_lifecycle_dry_run
 
+- name: Extract canonical latest SourceOS content-view version IDs
+  ansible.builtin.set_fact:
+    socios_katello_latest_content_view_versions: >-
+      {{ (socios_katello_latest_content_view_versions | default({})) | combine({
+        item.item.name: {
+          'id': ((item.stdout_lines | last).split(',')[0] | trim),
+          'version': ((item.stdout_lines | last).split(',')[1] | trim),
+          'raw': item.stdout_lines
+        }
+      }) }}
+  loop: "{{ socios_content_view_version_lists.results | default([]) }}"
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - item.stdout_lines is defined
+    - item.stdout_lines | length > 1
+
 - name: Promote SourceOS content views through lifecycle environments
   ansible.builtin.command:
     argv:
@@ -260,6 +276,7 @@
         'contentViews': socios_katello_content_views,
         'lifecycleEnvironments': socios_katello_lifecycle_environments,
         'activationKeys': socios_katello_activation_keys,
+        'latestContentViewVersions': (socios_katello_latest_content_view_versions | default({})),
         'contentViewVersionLists': (socios_content_view_version_lists.results | default([])),
         'contentViewPromotions': (socios_content_view_promote_results.results | default([])),
         'activationKeyOverrides': (socios_activation_key_override_results.results | default([]))
