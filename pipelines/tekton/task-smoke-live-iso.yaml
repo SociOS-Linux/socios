@@ -1,0 +1,28 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: smoke-live-iso
+spec:
+  description: >-
+    Scaffold smoke task for validating that a customized FCOS/SourceOS live ISO
+    can be handed to a virtualization-based smoke environment.
+  params:
+    - name: runnerImage
+      type: string
+      description: Image containing qemu or other smoke-runner tooling.
+      default: quay.io/socios/sourceos-smoke-runner:latest
+    - name: isoPath
+      type: string
+      description: Path to the ISO to smoke-test.
+  workspaces:
+    - name: source
+      description: Workspace containing the built ISO.
+  steps:
+    - name: smoke
+      image: $(params.runnerImage)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        echo "[smoke-live-iso] scaffold: validate presence of $(params.isoPath) and hand off to VM smoke runner"
+        test -f "$(params.isoPath)"
