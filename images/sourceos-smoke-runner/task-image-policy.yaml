@@ -4,7 +4,8 @@ metadata:
   name: sourceos-smoke-runner-image-pipeline
 spec:
   requireDigestForRelease: true
-  verificationReceiptPath: .workstation/reports/images/sourceos-smoke-runner-task-images.json
+  referenceCheckReceiptPath: .workstation/reports/images/sourceos-smoke-runner-task-images.json
+  digestResolutionReceiptPath: .workstation/reports/images/sourceos-smoke-runner-task-image-digests.json
   taskImages:
     - name: builderImage
       defaultRef: quay.io/buildah/stable:latest
@@ -37,4 +38,5 @@ spec:
   notes:
     - This policy records task-image digest requirements for release-grade pipelines.
     - Defaults remain tag-based for scaffolding until verified digests are supplied.
+    - The pipeline now emits both a reference-shape receipt and a digest-resolution receipt.
     - Set requirePinnedTaskImages=true in the pipeline to enforce digest-pinned task image refs.
