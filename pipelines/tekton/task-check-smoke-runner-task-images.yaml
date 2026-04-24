@@ -1,0 +1,66 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: check-smoke-runner-task-images
+spec:
+  description: >-
+    Check task image references used by the SourceOS smoke-runner image pipeline.
+  params:
+    - name: requirePinnedTaskImages
+      type: string
+      default: "false"
+    - name: builderImage
+      type: string
+      default: quay.io/buildah/stable:latest
+    - name: sbomImage
+      type: string
+      default: anchore/syft:latest
+    - name: scannerImage
+      type: string
+      default: anchore/grype:latest
+    - name: attestImage
+      type: string
+      default: gcr.io/projectsigstore/cosign:latest
+    - name: publisherImage
+      type: string
+      default: quay.io/skopeo/stable:latest
+    - name: inspectorImage
+      type: string
+      default: quay.io/skopeo/stable:latest
+    - name: utilityImage
+      type: string
+      default: docker.io/library/busybox:latest
+    - name: receiptPath
+      type: string
+      default: .workstation/reports/images/sourceos-smoke-runner-task-images.json
+  workspaces:
+    - name: source
+      description: Workspace for receipt output.
+  steps:
+    - name: check
+      image: $(params.utilityImage)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -eu
+        mkdir -p "$(dirname "$(params.receiptPath)")"
+        if [ "$(params.requirePinnedTaskImages)" = "true" ]; then
+          for ref in "$(params.builderImage)" "$(params.sbomImage)" "$(params.scannerImage)" "$(params.attestImage)" "$(params.publisherImage)" "$(params.inspectorImage)" "$(params.utilityImage)"; do
+            case "$ref" in *@sha256:*) ;; *) echo "task image reference must include digest" >&2; exit 2 ;; esac
+          done
+        fi
+        cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SmokeRunnerTaskImageReferenceReceipt",
+          "requirePinnedTaskImages": "$(params.requirePinnedTaskImages)",
+          "builderImage": "$(params.builderImage)",
+          "sbomImage": "$(params.sbomImage)",
+          "scannerImage": "$(params.scannerImage)",
+          "attestImage": "$(params.attestImage)",
+          "publisherImage": "$(params.publisherImage)",
+          "inspectorImage": "$(params.inspectorImage)",
+          "utilityImage": "$(params.utilityImage)",
+          "receiptPath": "$(params.receiptPath)"
+        }
+        JSON

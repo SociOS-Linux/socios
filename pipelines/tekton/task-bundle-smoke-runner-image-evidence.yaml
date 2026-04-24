@@ -12,6 +12,9 @@ spec:
     - name: baseImage
       type: string
       default: registry.fedoraproject.org/fedora-minimal@sha256:REPLACE_WITH_VERIFIED_DIGEST
+    - name: baseImageReceiptPath
+      type: string
+      default: .workstation/reports/images/sourceos-smoke-runner-base-image.json
     - name: buildReceiptPath
       type: string
       default: .workstation/reports/images/sourceos-smoke-runner-build.json
@@ -44,6 +47,7 @@ spec:
           "kind": "SmokeRunnerImageEvidenceBundle",
           "imageRef": "$(params.imageRef)",
           "baseImage": "$(params.baseImage)",
+          "baseImageReceiptPath": "$(params.baseImageReceiptPath)",
           "buildReceiptPath": "$(params.buildReceiptPath)",
           "sbomPath": "$(params.sbomPath)",
           "scanPath": "$(params.scanPath)",
