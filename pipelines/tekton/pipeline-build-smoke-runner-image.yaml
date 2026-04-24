@@ -1,0 +1,34 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: sourceos-build-smoke-runner-image
+spec:
+  description: >-
+    Build and optionally publish the SourceOS smoke-runner image used by live ISO
+    smoke checks.
+  params:
+    - name: imageRef
+      type: string
+      default: quay.io/socios/sourceos-smoke-runner:dev
+    - name: push
+      type: string
+      default: "false"
+    - name: builderImage
+      type: string
+      default: quay.io/buildah/stable:latest
+  workspaces:
+    - name: source
+  tasks:
+    - name: build-smoke-runner-image
+      taskRef:
+        name: build-smoke-runner-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: push
+          value: $(params.push)
+        - name: builderImage
+          value: $(params.builderImage)
