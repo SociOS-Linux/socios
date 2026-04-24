@@ -26,3 +26,24 @@ socios_smart_proxy_certs_source_hint: "Run foreman-proxy-certs-generate on the p
 socios_smart_proxy_registration_verify: true
 socios_smart_proxy_receipt_dir: /var/lib/socios/sourceos
 socios_smart_proxy_receipt_path: "{{ socios_smart_proxy_receipt_dir }}/smart-proxy-receipt.json"
+socios_smart_proxy_network_bindings_enabled: true
+socios_smart_proxy_domains:
+  - name: sourceos.local
+    description: SourceOS provisioning domain
+socios_smart_proxy_subnets:
+  - name: sourceos-provisioning
+    description: SourceOS provisioning network
+    network: 192.168.140.0
+    mask: 255.255.255.0
+    gateway: 192.168.140.1
+    dns_primary: 192.168.140.2
+    dns_secondary: 8.8.8.8
+    ipam: DHCP
+    from: 192.168.140.111
+    to: 192.168.140.250
+    boot_mode: DHCP
+    domains:
+      - sourceos.local
+    dhcp_proxy_id: null
+    dns_proxy_id: null
+    tftp_proxy_id: null
