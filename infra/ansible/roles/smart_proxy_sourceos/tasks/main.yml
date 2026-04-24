@@ -47,6 +47,7 @@
       certs_tar_path: "{{ socios_smart_proxy_certs_tar_path }}"
       certs_tar_exists: "{{ socios_smart_proxy_certs_tar.stat.exists }}"
       network_bindings_enabled: "{{ socios_smart_proxy_network_bindings_enabled }}"
+      auto_discover_proxy_ids: "{{ socios_smart_proxy_auto_discover_proxy_ids }}"
       domains: "{{ socios_smart_proxy_domains }}"
       subnets: "{{ socios_smart_proxy_subnets }}"
 
@@ -114,6 +115,24 @@
   when:
     - not socios_smart_proxy_dry_run
     - socios_smart_proxy_registration_verify
+
+- name: Derive registered SourceOS Smart Proxy ID
+  ansible.builtin.set_fact:
+    socios_smart_proxy_discovered_proxy_id: "{{ (socios_smart_proxy_registration_check.stdout_lines[1].split(',')[0]) | trim }}"
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_registration_verify
+    - socios_smart_proxy_auto_discover_proxy_ids
+    - socios_smart_proxy_registration_check.stdout_lines is defined
+    - socios_smart_proxy_registration_check.stdout_lines | length > 1
+
+- name: Show discovered SourceOS Smart Proxy ID
+  ansible.builtin.debug:
+    msg:
+      discovered_proxy_id: "{{ socios_smart_proxy_discovered_proxy_id | default(None) }}"
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_auto_discover_proxy_ids
 
 - name: Check SourceOS Smart Proxy domains
   ansible.builtin.command:
@@ -197,9 +216,9 @@
         + ((item['from'] is defined and item['from'] is not none and item['from'] | length > 0) | ternary(['--from', item['from']], []))
         + ((item.to is defined and item.to is not none and item.to | length > 0) | ternary(['--to', item.to], []))
         + ((item.domains is defined and item.domains | length > 0) | ternary(['--domains', (item.domains | join(','))], []))
-        + ((item.dhcp_proxy_id is not none) | ternary(['--dhcp-id', item.dhcp_proxy_id | string], []))
-        + ((item.dns_proxy_id is not none) | ternary(['--dns-id', item.dns_proxy_id | string], []))
-        + ((item.tftp_proxy_id is not none) | ternary(['--tftp-id', item.tftp_proxy_id | string], [])) }}
+        + ((item.dhcp_proxy_id is not none) | ternary(['--dhcp-id', item.dhcp_proxy_id | string], ((socios_smart_proxy_enable_dhcp and socios_smart_proxy_auto_discover_proxy_ids and socios_smart_proxy_discovered_proxy_id is defined) | ternary(['--dhcp-id', socios_smart_proxy_discovered_proxy_id | string], []))))
+        + ((item.dns_proxy_id is not none) | ternary(['--dns-id', item.dns_proxy_id | string], ((socios_smart_proxy_enable_dns and socios_smart_proxy_auto_discover_proxy_ids and socios_smart_proxy_discovered_proxy_id is defined) | ternary(['--dns-id', socios_smart_proxy_discovered_proxy_id | string], []))))
+        + ((item.tftp_proxy_id is not none) | ternary(['--tftp-id', item.tftp_proxy_id | string], ((socios_smart_proxy_enable_tftp and socios_smart_proxy_auto_discover_proxy_ids and socios_smart_proxy_discovered_proxy_id is defined) | ternary(['--tftp-id', socios_smart_proxy_discovered_proxy_id | string], [])))) }}
   loop: "{{ socios_smart_proxy_subnets }}"
   loop_control:
     extended: true
@@ -231,6 +250,8 @@
         'certsTarPath': socios_smart_proxy_certs_tar_path,
         'certsTarExists': socios_smart_proxy_certs_tar.stat.exists,
         'registrationVerify': socios_smart_proxy_registration_verify,
+        'autoDiscoverProxyIds': socios_smart_proxy_auto_discover_proxy_ids,
+        'discoveredProxyId': (socios_smart_proxy_discovered_proxy_id | default(None)),
         'registrationCheck': (socios_smart_proxy_registration_check.stdout_lines | default([])),
         'domainChecks': (socios_smart_proxy_domain_checks.results | default([])),
         'subnetChecks': (socios_smart_proxy_subnet_checks.results | default([])),
