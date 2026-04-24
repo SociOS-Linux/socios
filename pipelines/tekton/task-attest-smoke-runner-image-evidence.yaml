@@ -1,0 +1,58 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: attest-smoke-runner-image-evidence
+spec:
+  description: >-
+    Optional attestation scaffold for the SourceOS smoke-runner image evidence bundle.
+  params:
+    - name: attestationImage
+      type: string
+      description: Image containing cosign.
+      default: gcr.io/projectsigstore/cosign:latest
+    - name: enabled
+      type: string
+      default: "false"
+    - name: evidenceBundlePath
+      type: string
+      default: .workstation/reports/evidence/sourceos-smoke-runner-evidence.json
+    - name: attestationPath
+      type: string
+      default: .workstation/reports/attest/sourceos-smoke-runner-evidence.sig
+    - name: receiptPath
+      type: string
+      default: .workstation/reports/attest/sourceos-smoke-runner-evidence-attestation.json
+  workspaces:
+    - name: source
+      description: Workspace for attestation output.
+  steps:
+    - name: attest
+      image: $(params.attestationImage)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+        mkdir -p "$(dirname "$(params.receiptPath)")"
+        if [ "$(params.enabled)" != "true" ]; then
+          cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SmokeRunnerImageEvidenceAttestation",
+          "evidenceBundlePath": "$(params.evidenceBundlePath)",
+          "enabled": false,
+          "status": "skipped"
+        }
+        JSON
+          exit 0
+        fi
+        cosign sign-blob --yes --output-signature "$(params.attestationPath)" "$(params.evidenceBundlePath)"
+        cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SmokeRunnerImageEvidenceAttestation",
+          "evidenceBundlePath": "$(params.evidenceBundlePath)",
+          "attestationPath": "$(params.attestationPath)",
+          "enabled": true,
+          "status": "attested"
+        }
+        JSON

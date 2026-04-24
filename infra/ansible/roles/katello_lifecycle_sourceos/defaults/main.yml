@@ -1,0 +1,65 @@
+---
+socios_katello_lifecycle_dry_run: true
+socios_katello_server_url: https://foreman.example.com
+socios_katello_organization: SourceOS
+socios_katello_content_view_promote_from_lifecycle_environment: Library
+socios_katello_receipt_dir: /var/lib/socios/sourceos
+socios_katello_lifecycle_receipt_path: "{{ socios_katello_receipt_dir }}/katello-lifecycle-receipt.json"
+socios_katello_lifecycle_receipt_signing_enabled: false
+socios_katello_lifecycle_receipt_signing_provider: cosign
+socios_katello_lifecycle_receipt_signing_identity_ref: null
+socios_katello_lifecycle_receipt_signature_path: "{{ socios_katello_lifecycle_receipt_path }}.sig"
+socios_katello_lifecycle_receipt_signature_metadata_path: "{{ socios_katello_lifecycle_receipt_path }}.signature.json"
+socios_katello_activation_key_verify_overrides: true
+socios_katello_activation_key_product_content_access_mode_all: true
+socios_katello_lifecycle_environments:
+  - name: dev
+    prior: Library
+  - name: qa
+    prior: dev
+  - name: prod
+    prior: qa
+socios_katello_content_views:
+  - name: sourceos-workstation
+    description: SourceOS Workstation release snapshot
+    repositories:
+      - product: SourceOS Files
+        name: sourceos-live-iso
+      - product: SourceOS Files
+        name: sourceos-disk-images
+      - product: SourceOS Files
+        name: sourceos-config-bundles
+socios_katello_activation_keys:
+  - name: sourceos-workstation-dev
+    lifecycle_environment: dev
+    content_view: sourceos-workstation
+    description: Development enrollment key for SourceOS Workstation
+    content_overrides:
+      - content_label: sourceos-live-iso
+        override_name: enabled
+        value: true
+      - content_label: sourceos-config-bundles
+        override_name: enabled
+        value: true
+  - name: sourceos-workstation-qa
+    lifecycle_environment: qa
+    content_view: sourceos-workstation
+    description: QA enrollment key for SourceOS Workstation
+    content_overrides:
+      - content_label: sourceos-live-iso
+        override_name: enabled
+        value: true
+      - content_label: sourceos-config-bundles
+        override_name: enabled
+        value: true
+  - name: sourceos-workstation-prod
+    lifecycle_environment: prod
+    content_view: sourceos-workstation
+    description: Production enrollment key for SourceOS Workstation
+    content_overrides:
+      - content_label: sourceos-live-iso
+        override_name: enabled
+        value: true
+      - content_label: sourceos-config-bundles
+        override_name: enabled
+        value: true
