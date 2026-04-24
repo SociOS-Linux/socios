@@ -46,6 +46,9 @@
       content_sync_policy: "{{ socios_smart_proxy_content_sync_policy }}"
       certs_tar_path: "{{ socios_smart_proxy_certs_tar_path }}"
       certs_tar_exists: "{{ socios_smart_proxy_certs_tar.stat.exists }}"
+      network_bindings_enabled: "{{ socios_smart_proxy_network_bindings_enabled }}"
+      domains: "{{ socios_smart_proxy_domains }}"
+      subnets: "{{ socios_smart_proxy_subnets }}"
 
 - name: Explain dry-run posture for Smart Proxy scaffold
   ansible.builtin.debug:
@@ -112,6 +115,99 @@
     - not socios_smart_proxy_dry_run
     - socios_smart_proxy_registration_verify
 
+- name: Check SourceOS Smart Proxy domains
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_smart_proxy_parent_foreman_url }}"
+      - domain
+      - list
+      - --search
+      - "name = {{ item.name }}"
+      - --fields
+      - Id
+      - --csv
+  loop: "{{ socios_smart_proxy_domains }}"
+  register: socios_smart_proxy_domain_checks
+  changed_when: false
+  failed_when: false
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_network_bindings_enabled
+
+- name: Create SourceOS Smart Proxy domains when missing
+  ansible.builtin.command:
+    argv: >-
+      {{ [
+        'hammer',
+        '--server', socios_smart_proxy_parent_foreman_url,
+        'domain', 'create',
+        '--name', item.name,
+        '--description', (item.description | default('SourceOS provisioning domain'))
+      ] + ((socios_smart_proxy_organization is not none and socios_smart_proxy_organization | length > 0) | ternary(['--organizations', socios_smart_proxy_organization], []))
+        + ((socios_smart_proxy_location is not none and socios_smart_proxy_location | length > 0) | ternary(['--locations', socios_smart_proxy_location], [])) }}
+  loop: "{{ socios_smart_proxy_domains }}"
+  loop_control:
+    extended: true
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_network_bindings_enabled
+    - socios_smart_proxy_domain_checks.results[ansible_loop.index0].stdout_lines | length <= 1
+
+- name: Check SourceOS Smart Proxy subnets
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_smart_proxy_parent_foreman_url }}"
+      - subnet
+      - list
+      - --search
+      - "name = {{ item.name }}"
+      - --fields
+      - Id
+      - --csv
+  loop: "{{ socios_smart_proxy_subnets }}"
+  register: socios_smart_proxy_subnet_checks
+  changed_when: false
+  failed_when: false
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_network_bindings_enabled
+
+- name: Create SourceOS Smart Proxy subnets when missing
+  ansible.builtin.command:
+    argv: >-
+      {{ [
+        'hammer',
+        '--server', socios_smart_proxy_parent_foreman_url,
+        'subnet', 'create',
+        '--name', item.name,
+        '--description', (item.description | default('SourceOS provisioning subnet')),
+        '--network', item.network,
+        '--mask', item.mask,
+        '--gateway', item.gateway,
+        '--ipam', item.ipam,
+        '--boot-mode', item.boot_mode,
+        '--organizations', socios_smart_proxy_organization,
+        '--locations', socios_smart_proxy_location
+      ] + ((item.dns_primary is not none and item.dns_primary | length > 0) | ternary(['--dns-primary', item.dns_primary], []))
+        + ((item.dns_secondary is not none and item.dns_secondary | length > 0) | ternary(['--dns-secondary', item.dns_secondary], []))
+        + ((item['from'] is defined and item['from'] is not none and item['from'] | length > 0) | ternary(['--from', item['from']], []))
+        + ((item.to is defined and item.to is not none and item.to | length > 0) | ternary(['--to', item.to], []))
+        + ((item.domains is defined and item.domains | length > 0) | ternary(['--domains', (item.domains | join(','))], []))
+        + ((item.dhcp_proxy_id is not none) | ternary(['--dhcp-id', item.dhcp_proxy_id | string], []))
+        + ((item.dns_proxy_id is not none) | ternary(['--dns-id', item.dns_proxy_id | string], []))
+        + ((item.tftp_proxy_id is not none) | ternary(['--tftp-id', item.tftp_proxy_id | string], [])) }}
+  loop: "{{ socios_smart_proxy_subnets }}"
+  loop_control:
+    extended: true
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_network_bindings_enabled
+    - socios_smart_proxy_subnet_checks.results[ansible_loop.index0].stdout_lines | length <= 1
+
 - name: Ensure SourceOS Smart Proxy receipt directory exists
   ansible.builtin.file:
     path: "{{ socios_smart_proxy_receipt_dir }}"
@@ -136,6 +232,10 @@
         'certsTarExists': socios_smart_proxy_certs_tar.stat.exists,
         'registrationVerify': socios_smart_proxy_registration_verify,
         'registrationCheck': (socios_smart_proxy_registration_check.stdout_lines | default([])),
+        'domainChecks': (socios_smart_proxy_domain_checks.results | default([])),
+        'subnetChecks': (socios_smart_proxy_subnet_checks.results | default([])),
+        'domains': socios_smart_proxy_domains,
+        'subnets': socios_smart_proxy_subnets,
         'installerResultRc': (socios_smart_proxy_installer_result.rc | default(None)),
         'dryRun': socios_smart_proxy_dry_run
       } | to_nice_json }}
