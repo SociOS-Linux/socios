@@ -7,7 +7,7 @@ socios_katello_receipt_dir: /var/lib/socios/sourceos
 socios_katello_lifecycle_receipt_path: "{{ socios_katello_receipt_dir }}/katello-lifecycle-receipt.json"
 socios_katello_lifecycle_receipt_signing_enabled: false
 socios_katello_lifecycle_receipt_signing_provider: cosign
-socios_katello_lifecycle_receipt_signing_key_ref: null
+socios_katello_lifecycle_receipt_signing_identity_ref: null
 socios_katello_lifecycle_receipt_signature_path: "{{ socios_katello_lifecycle_receipt_path }}.sig"
 socios_katello_lifecycle_receipt_signature_metadata_path: "{{ socios_katello_lifecycle_receipt_path }}.signature.json"
 socios_katello_activation_key_verify_overrides: true
@@ -17,6 +17,8 @@ socios_katello_lifecycle_environments:
     prior: Library
   - name: qa
     prior: dev
+  - name: prod
+    prior: qa
 socios_katello_content_views:
   - name: sourceos-workstation
     description: SourceOS Workstation release snapshot
