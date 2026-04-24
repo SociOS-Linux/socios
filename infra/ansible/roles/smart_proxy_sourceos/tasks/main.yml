@@ -7,6 +7,56 @@
       - ansible_architecture in ['x86_64', 'amd64']
     fail_msg: "SourceOS Smart Proxy hosts should run on dedicated EL9 x86_64-class systems."
 
+- name: Preview SourceOS Smart Proxy cert archive generation command
+  ansible.builtin.debug:
+    msg:
+      delegate_to: "{{ socios_smart_proxy_cert_archive_parent_host }}"
+      argv:
+        - foreman-proxy-certs-generate
+        - --foreman-proxy-fqdn
+        - "{{ socios_smart_proxy_servername }}"
+        - --certs-tar
+        - "{{ socios_smart_proxy_cert_archive_parent_path }}"
+  when:
+    - socios_smart_proxy_dry_run
+    - socios_smart_proxy_cert_archive_generate_on_parent
+
+- name: Generate SourceOS Smart Proxy cert archive on parent Foreman host
+  ansible.builtin.command:
+    argv:
+      - foreman-proxy-certs-generate
+      - --foreman-proxy-fqdn
+      - "{{ socios_smart_proxy_servername }}"
+      - --certs-tar
+      - "{{ socios_smart_proxy_cert_archive_parent_path }}"
+  delegate_to: "{{ socios_smart_proxy_cert_archive_parent_host }}"
+  register: socios_smart_proxy_cert_archive_generate_result
+  changed_when: true
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_cert_archive_generate_on_parent
+
+- name: Fetch SourceOS Smart Proxy cert archive from parent Foreman host
+  ansible.builtin.fetch:
+    src: "{{ socios_smart_proxy_cert_archive_parent_path }}"
+    dest: "{{ socios_smart_proxy_cert_archive_local_tmp }}"
+    flat: true
+  delegate_to: "{{ socios_smart_proxy_cert_archive_parent_host }}"
+  register: socios_smart_proxy_cert_archive_fetch_result
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_cert_archive_auto_retrieve
+
+- name: Copy SourceOS Smart Proxy cert archive onto proxy host
+  ansible.builtin.copy:
+    src: "{{ socios_smart_proxy_cert_archive_local_tmp }}"
+    dest: "{{ socios_smart_proxy_certs_tar_path }}"
+    mode: "0600"
+  register: socios_smart_proxy_cert_archive_copy_result
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_cert_archive_auto_retrieve
+
 - name: Check SourceOS Smart Proxy cert tarball presence
   ansible.builtin.stat:
     path: "{{ socios_smart_proxy_certs_tar_path }}"
@@ -48,6 +98,10 @@
       content_sync_policy: "{{ socios_smart_proxy_content_sync_policy }}"
       certs_tar_path: "{{ socios_smart_proxy_certs_tar_path }}"
       certs_tar_exists: "{{ socios_smart_proxy_certs_tar.stat.exists }}"
+      cert_archive_auto_retrieve: "{{ socios_smart_proxy_cert_archive_auto_retrieve }}"
+      cert_archive_generate_on_parent: "{{ socios_smart_proxy_cert_archive_generate_on_parent }}"
+      cert_archive_parent_host: "{{ socios_smart_proxy_cert_archive_parent_host }}"
+      cert_archive_parent_path: "{{ socios_smart_proxy_cert_archive_parent_path }}"
       network_bindings_enabled: "{{ socios_smart_proxy_network_bindings_enabled }}"
       auto_discover_proxy_ids: "{{ socios_smart_proxy_auto_discover_proxy_ids }}"
       domains: "{{ socios_smart_proxy_domains }}"
@@ -282,6 +336,13 @@
         'contentSyncPolicy': socios_smart_proxy_content_sync_policy,
         'certsTarPath': socios_smart_proxy_certs_tar_path,
         'certsTarExists': socios_smart_proxy_certs_tar.stat.exists,
+        'certArchiveAutoRetrieve': socios_smart_proxy_cert_archive_auto_retrieve,
+        'certArchiveGenerateOnParent': socios_smart_proxy_cert_archive_generate_on_parent,
+        'certArchiveParentHost': socios_smart_proxy_cert_archive_parent_host,
+        'certArchiveParentPath': socios_smart_proxy_cert_archive_parent_path,
+        'certArchiveGenerateResult': (socios_smart_proxy_cert_archive_generate_result | default({})),
+        'certArchiveFetchResult': (socios_smart_proxy_cert_archive_fetch_result | default({})),
+        'certArchiveCopyResult': (socios_smart_proxy_cert_archive_copy_result | default({})),
         'registrationVerify': socios_smart_proxy_registration_verify,
         'autoDiscoverProxyIds': socios_smart_proxy_auto_discover_proxy_ids,
         'discoveredProxyId': (socios_smart_proxy_discovered_proxy_id | default(None)),
