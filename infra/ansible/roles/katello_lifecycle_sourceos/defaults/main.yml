@@ -2,6 +2,7 @@
 socios_katello_lifecycle_dry_run: true
 socios_katello_server_url: https://foreman.example.com
 socios_katello_organization: SourceOS
+socios_katello_content_view_promote_from_lifecycle_environment: Library
 socios_katello_lifecycle_environments:
   - name: dev
     prior: Library
@@ -24,11 +25,32 @@ socios_katello_activation_keys:
     lifecycle_environment: dev
     content_view: sourceos-workstation
     description: Development enrollment key for SourceOS Workstation
+    content_overrides:
+      - content_label: sourceos-live-iso
+        override_name: enabled
+        value: true
+      - content_label: sourceos-config-bundles
+        override_name: enabled
+        value: true
   - name: sourceos-workstation-qa
     lifecycle_environment: qa
     content_view: sourceos-workstation
     description: QA enrollment key for SourceOS Workstation
+    content_overrides:
+      - content_label: sourceos-live-iso
+        override_name: enabled
+        value: true
+      - content_label: sourceos-config-bundles
+        override_name: enabled
+        value: true
   - name: sourceos-workstation-prod
     lifecycle_environment: prod
     content_view: sourceos-workstation
     description: Production enrollment key for SourceOS Workstation
+    content_overrides:
+      - content_label: sourceos-live-iso
+        override_name: enabled
+        value: true
+      - content_label: sourceos-config-bundles
+        override_name: enabled
+        value: true
