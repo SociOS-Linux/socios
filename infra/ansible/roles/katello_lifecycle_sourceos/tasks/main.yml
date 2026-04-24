@@ -256,6 +256,39 @@
   register: socios_activation_key_override_results
   when: not socios_katello_lifecycle_dry_run
 
+- name: Verify SourceOS activation-key product content after overrides
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - activation-key
+      - product-content
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.0.name }}"
+      - --content-access-mode-all
+      - "{{ socios_katello_activation_key_product_content_access_mode_all | string | lower }}"
+      - --csv
+  loop: "{{ socios_katello_activation_keys | subelements('content_overrides', skip_missing=True) }}"
+  register: socios_activation_key_product_content_verifications
+  changed_when: false
+  failed_when: false
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_katello_activation_key_verify_overrides
+
+- name: Assert SourceOS activation-key content labels are visible after override
+  ansible.builtin.assert:
+    that:
+      - item.item.1.content_label in (item.stdout | default(''))
+    fail_msg: "Activation key {{ item.item.0.name }} does not list expected content label {{ item.item.1.content_label }} after content override."
+  loop: "{{ socios_activation_key_product_content_verifications.results | default([]) }}"
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_katello_activation_key_verify_overrides
+
 - name: Ensure SourceOS lifecycle receipt directory exists
   ansible.builtin.file:
     path: "{{ socios_katello_receipt_dir }}"
@@ -279,6 +312,7 @@
         'latestContentViewVersions': (socios_katello_latest_content_view_versions | default({})),
         'contentViewVersionLists': (socios_content_view_version_lists.results | default([])),
         'contentViewPromotions': (socios_content_view_promote_results.results | default([])),
-        'activationKeyOverrides': (socios_activation_key_override_results.results | default([]))
+        'activationKeyOverrides': (socios_activation_key_override_results.results | default([])),
+        'activationKeyProductContentVerifications': (socios_activation_key_product_content_verifications.results | default([]))
       } | to_nice_json }}
   when: not socios_katello_lifecycle_dry_run
