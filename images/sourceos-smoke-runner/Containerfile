@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=registry.fedoraproject.org/fedora-minimal:latest
+ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.title="SourceOS smoke runner"
