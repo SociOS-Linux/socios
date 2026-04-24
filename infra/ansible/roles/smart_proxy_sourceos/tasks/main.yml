@@ -7,6 +7,28 @@
       - ansible_architecture in ['x86_64', 'amd64']
     fail_msg: "SourceOS Smart Proxy hosts should run on dedicated EL9 x86_64-class systems."
 
+- name: Check SourceOS Smart Proxy cert tarball presence
+  ansible.builtin.stat:
+    path: "{{ socios_smart_proxy_certs_tar_path }}"
+  register: socios_smart_proxy_certs_tar
+
+- name: Explain Smart Proxy cert tarball requirement
+  ansible.builtin.debug:
+    msg:
+      - "Smart Proxy certificate tarball is required before non-dry-run installation."
+      - "{{ socios_smart_proxy_certs_source_hint }}"
+      - "Expected path: {{ socios_smart_proxy_certs_tar_path }}"
+  when:
+    - socios_smart_proxy_dry_run
+    - not socios_smart_proxy_certs_tar.stat.exists
+
+- name: Require Smart Proxy cert tarball in non-dry-run mode
+  ansible.builtin.assert:
+    that:
+      - socios_smart_proxy_certs_tar.stat.exists
+    fail_msg: "Missing Smart Proxy cert tarball at {{ socios_smart_proxy_certs_tar_path }}. Generate it on the parent Foreman/Katello host and copy it here."
+  when: not socios_smart_proxy_dry_run
+
 - name: Show SourceOS Smart Proxy desired feature posture
   ansible.builtin.debug:
     msg:
@@ -22,6 +44,8 @@
       templates: "{{ socios_smart_proxy_enable_templates }}"
       content: "{{ socios_smart_proxy_enable_content }}"
       content_sync_policy: "{{ socios_smart_proxy_content_sync_policy }}"
+      certs_tar_path: "{{ socios_smart_proxy_certs_tar_path }}"
+      certs_tar_exists: "{{ socios_smart_proxy_certs_tar.stat.exists }}"
 
 - name: Explain dry-run posture for Smart Proxy scaffold
   ansible.builtin.debug:
@@ -38,7 +62,7 @@
         - --scenario
         - foreman-proxy-content
         - --certs-tar
-        - /root/smart-proxy-certs.tar
+        - "{{ socios_smart_proxy_certs_tar_path }}"
         - --foreman-proxy-register-in-foreman
         - true
         - --foreman-proxy-foreman-base-url
@@ -56,7 +80,7 @@
       - --scenario
       - foreman-proxy-content
       - --certs-tar
-      - /root/smart-proxy-certs.tar
+      - "{{ socios_smart_proxy_certs_tar_path }}"
       - --foreman-proxy-register-in-foreman
       - true
       - --foreman-proxy-foreman-base-url
@@ -65,17 +89,38 @@
       - "{{ socios_smart_proxy_enable_tftp | string | lower }}"
       - --foreman-proxy-templates
       - "{{ socios_smart_proxy_enable_templates | string | lower }}"
+  register: socios_smart_proxy_installer_result
   when: not socios_smart_proxy_dry_run
+
+- name: Verify SourceOS Smart Proxy registration in Foreman
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_smart_proxy_parent_foreman_url }}"
+      - proxy
+      - list
+      - --search
+      - "name = {{ socios_smart_proxy_servername }}"
+      - --fields
+      - Id,Name,Url
+      - --csv
+  register: socios_smart_proxy_registration_check
+  changed_when: false
+  failed_when: false
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_registration_verify
 
 - name: Ensure SourceOS Smart Proxy receipt directory exists
   ansible.builtin.file:
-    path: /var/lib/socios/sourceos
+    path: "{{ socios_smart_proxy_receipt_dir }}"
     state: directory
     mode: "0750"
 
 - name: Emit SourceOS Smart Proxy scaffold receipt
   ansible.builtin.copy:
-    dest: /var/lib/socios/sourceos/smart-proxy-receipt.json
+    dest: "{{ socios_smart_proxy_receipt_path }}"
     mode: "0640"
     content: |
       {{ {
@@ -87,5 +132,10 @@
         'location': socios_smart_proxy_location,
         'features': socios_smart_proxy_features,
         'contentSyncPolicy': socios_smart_proxy_content_sync_policy,
+        'certsTarPath': socios_smart_proxy_certs_tar_path,
+        'certsTarExists': socios_smart_proxy_certs_tar.stat.exists,
+        'registrationVerify': socios_smart_proxy_registration_verify,
+        'registrationCheck': (socios_smart_proxy_registration_check.stdout_lines | default([])),
+        'installerResultRc': (socios_smart_proxy_installer_result.rc | default(None)),
         'dryRun': socios_smart_proxy_dry_run
       } | to_nice_json }}
