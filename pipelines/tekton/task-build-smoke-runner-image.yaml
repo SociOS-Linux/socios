@@ -1,0 +1,45 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: build-smoke-runner-image
+spec:
+  description: >-
+    Build the SourceOS smoke-runner image from images/sourceos-smoke-runner/Containerfile.
+  params:
+    - name: builderImage
+      type: string
+      description: Image containing buildah.
+      default: quay.io/buildah/stable:latest
+    - name: imageRef
+      type: string
+      description: Target image ref to build, e.g. quay.io/socios/sourceos-smoke-runner:dev.
+      default: quay.io/socios/sourceos-smoke-runner:dev
+    - name: contextDir
+      type: string
+      description: Build context directory.
+      default: .
+    - name: containerfile
+      type: string
+      description: Containerfile path relative to contextDir.
+      default: images/sourceos-smoke-runner/Containerfile
+    - name: push
+      type: string
+      description: Whether to push the image after build.
+      default: "false"
+  workspaces:
+    - name: source
+      description: Checked-out socios repository.
+  steps:
+    - name: build
+      image: $(params.builderImage)
+      workingDir: $(workspaces.source.path)/$(params.contextDir)
+      securityContext:
+        privileged: true
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        echo "[build-smoke-runner-image] build $(params.imageRef)"
+        buildah bud -f "$(params.containerfile)" -t "$(params.imageRef)" .
+        if [[ "$(params.push)" == "true" ]]; then
+          buildah push "$(params.imageRef)"
+        fi
