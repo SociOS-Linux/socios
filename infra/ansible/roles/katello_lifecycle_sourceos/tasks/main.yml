@@ -1,0 +1,116 @@
+---
+- name: Explain dry-run posture for Katello lifecycle seeding
+  ansible.builtin.debug:
+    msg:
+      - "Dry-run mode enabled; lifecycle/content-view/activation-key commands are not being executed."
+      - "Set socios_katello_lifecycle_dry_run=false after hammer auth and repository seeding are in place."
+  when: socios_katello_lifecycle_dry_run
+
+- name: Create SourceOS lifecycle environments
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - lifecycle-environment
+      - create
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.name }}"
+      - --prior
+      - "{{ item.prior }}"
+  loop: "{{ socios_katello_lifecycle_environments }}"
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Create SourceOS content views
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - content-view
+      - create
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.name }}"
+      - --description
+      - "{{ item.description | default('SourceOS content view') }}"
+  loop: "{{ socios_katello_content_views }}"
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Add repositories to SourceOS content views
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - content-view
+      - add-repository
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.0.name }}"
+      - --product
+      - "{{ item.1.product }}"
+      - --repository
+      - "{{ item.1.name }}"
+  loop: "{{ socios_katello_content_views | subelements('repositories') }}"
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Publish SourceOS content views
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - content-view
+      - publish
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.name }}"
+      - --description
+      - "Initial SourceOS content view publication"
+  loop: "{{ socios_katello_content_views }}"
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Promote SourceOS content views through lifecycle environments
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - content-view
+      - version
+      - promote
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --content-view
+      - "{{ item.0.name }}"
+      - --to-lifecycle-environment
+      - "{{ item.1.name }}"
+  loop: "{{ socios_katello_content_views | product(socios_katello_lifecycle_environments) | list }}"
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Create SourceOS activation keys
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - activation-key
+      - create
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.name }}"
+      - --description
+      - "{{ item.description | default('SourceOS activation key') }}"
+      - --lifecycle-environment
+      - "{{ item.lifecycle_environment }}"
+      - --content-view
+      - "{{ item.content_view }}"
+  loop: "{{ socios_katello_activation_keys }}"
+  when: not socios_katello_lifecycle_dry_run
