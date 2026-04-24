@@ -12,15 +12,16 @@ The image provides a minimal runtime for `tools/sourceos-smoke-runner`:
 ## Current posture
 
 - base image is configurable through `BASE_IMAGE`
-- intended default base is Fedora minimal
-- image is not yet digest-pinned
-- image build/sign/publish policy is intentionally outside this scaffold
+- the Containerfile requires explicit `BASE_IMAGE` input
+- the Tekton build task can enforce digest-pinned base images with `requirePinnedBase=true`
+- `image-policy.yaml` records digest/SBOM/signing expectations without inventing an unverified digest
+- the Tekton image pipeline now builds the image, emits an SBOM, and can optionally run a signing task
+- signing remains disabled by default until cross-stack signing authority is finalized
 
 ## Follow-on
 
 The next tranche should add:
-- pinned base image digest
-- SBOM generation
-- image signing
+- verified base image digest replacement in `image-policy.yaml`
 - vulnerability scan policy
+- signed SBOM / provenance bundle
 - promotion into the SourceOS/SociOS registry catalog
