@@ -4,9 +4,9 @@ metadata:
   name: sourceos-build-smoke-runner-image
 spec:
   description: >-
-    Verify base image, build, optionally publish, generate SBOM, scan, emit provenance,
-    bundle evidence, optionally attest, and optionally promote the SourceOS smoke-runner
-    image used by live ISO smoke checks.
+    Check task image refs, verify base image, build, optionally publish, generate SBOM,
+    scan, emit provenance, bundle evidence, optionally attest, and optionally promote
+    the SourceOS smoke-runner image used by live ISO smoke checks.
   params:
     - name: imageRef
       type: string
@@ -20,6 +20,9 @@ spec:
     - name: requirePinnedBase
       type: string
       default: "true"
+    - name: requirePinnedTaskImages
+      type: string
+      default: "false"
     - name: push
       type: string
       default: "false"
@@ -47,13 +50,41 @@ spec:
     - name: inspectorImage
       type: string
       default: quay.io/skopeo/stable:latest
+    - name: utilityImage
+      type: string
+      default: docker.io/library/busybox:latest
     - name: failOnSeverity
       type: string
       default: high
   workspaces:
     - name: source
   tasks:
+    - name: check-smoke-runner-task-images
+      taskRef:
+        name: check-smoke-runner-task-images
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: requirePinnedTaskImages
+          value: $(params.requirePinnedTaskImages)
+        - name: builderImage
+          value: $(params.builderImage)
+        - name: sbomImage
+          value: $(params.sbomImage)
+        - name: scannerImage
+          value: $(params.scannerImage)
+        - name: attestImage
+          value: $(params.signingImage)
+        - name: publisherImage
+          value: $(params.publisherImage)
+        - name: inspectorImage
+          value: $(params.inspectorImage)
+        - name: utilityImage
+          value: $(params.utilityImage)
+
     - name: verify-smoke-runner-base-image
+      runAfter: [check-smoke-runner-task-images]
       taskRef:
         name: verify-smoke-runner-base-image
       workspaces:
