@@ -37,6 +37,8 @@
       organization: "{{ socios_smart_proxy_organization }}"
       location: "{{ socios_smart_proxy_location }}"
       features: "{{ socios_smart_proxy_features }}"
+      expected_features: "{{ socios_smart_proxy_expected_features }}"
+      verify_features: "{{ socios_smart_proxy_verify_features }}"
       dhcp: "{{ socios_smart_proxy_enable_dhcp }}"
       dns: "{{ socios_smart_proxy_enable_dns }}"
       tftp: "{{ socios_smart_proxy_enable_tftp }}"
@@ -133,6 +135,35 @@
   when:
     - not socios_smart_proxy_dry_run
     - socios_smart_proxy_auto_discover_proxy_ids
+
+- name: Inspect SourceOS Smart Proxy features
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_smart_proxy_parent_foreman_url }}"
+      - proxy
+      - info
+      - --id
+      - "{{ socios_smart_proxy_discovered_proxy_id }}"
+  register: socios_smart_proxy_info
+  changed_when: false
+  failed_when: false
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_verify_features
+    - socios_smart_proxy_discovered_proxy_id is defined
+
+- name: Verify SourceOS Smart Proxy expected features
+  ansible.builtin.assert:
+    that:
+      - item | lower in (socios_smart_proxy_info.stdout | default('') | lower)
+    fail_msg: "Expected Smart Proxy feature '{{ item }}' not found in hammer proxy info output for {{ socios_smart_proxy_servername }}."
+  loop: "{{ socios_smart_proxy_expected_features }}"
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_verify_features
+    - socios_smart_proxy_info is defined
 
 - name: Check SourceOS Smart Proxy domains
   ansible.builtin.command:
@@ -246,6 +277,8 @@
         'organization': socios_smart_proxy_organization,
         'location': socios_smart_proxy_location,
         'features': socios_smart_proxy_features,
+        'expectedFeatures': socios_smart_proxy_expected_features,
+        'verifyFeatures': socios_smart_proxy_verify_features,
         'contentSyncPolicy': socios_smart_proxy_content_sync_policy,
         'certsTarPath': socios_smart_proxy_certs_tar_path,
         'certsTarExists': socios_smart_proxy_certs_tar.stat.exists,
@@ -253,6 +286,7 @@
         'autoDiscoverProxyIds': socios_smart_proxy_auto_discover_proxy_ids,
         'discoveredProxyId': (socios_smart_proxy_discovered_proxy_id | default(None)),
         'registrationCheck': (socios_smart_proxy_registration_check.stdout_lines | default([])),
+        'proxyInfo': (socios_smart_proxy_info.stdout_lines | default([])),
         'domainChecks': (socios_smart_proxy_domain_checks.results | default([])),
         'subnetChecks': (socios_smart_proxy_subnet_checks.results | default([])),
         'domains': socios_smart_proxy_domains,
