@@ -6,7 +6,8 @@ This role scaffolds SourceOS Smart Proxy / site-edge provisioning and content di
 
 The role models:
 - a dedicated EL9 x86_64-class Smart Proxy host
-- certificate tarball preflight for `foreman-proxy-certs-generate` output
+- certificate archive generation/retrieval scaffolding for parent Foreman output
+- certificate archive preflight for non-dry-run installation
 - registration back to the parent Foreman/Katello management host
 - registration verification using `hammer proxy list`
 - automatic registered proxy ID discovery from Hammer CSV output
@@ -22,22 +23,23 @@ The role models:
 ## Current posture
 
 - dry-run by default
+- previews the intended parent-host certificate archive generation command when enabled
+- can optionally generate the certificate archive on the parent Foreman host
+- can optionally fetch the archive to the controller and copy it onto the Smart Proxy host
 - previews the intended `foreman-installer --scenario foreman-proxy-content` command
-- requires a cert tarball before non-dry-run installation
+- requires a certificate archive before non-dry-run installation
 - verifies Smart Proxy registration after non-dry-run installation when enabled
 - derives `socios_smart_proxy_discovered_proxy_id` from `hammer proxy list` when `socios_smart_proxy_auto_discover_proxy_ids=true`
 - inspects Smart Proxy details with `hammer proxy info --id <discovered-id>` when `socios_smart_proxy_verify_features=true`
 - asserts expected features from `socios_smart_proxy_expected_features` are present in proxy info output
 - uses the discovered proxy ID as fallback for DHCP/DNS/TFTP subnet bindings when enabled and explicit IDs are not supplied
 - can create missing domains and subnets when `socios_smart_proxy_network_bindings_enabled=true`
-- emits a local unsigned `SmartProxyReceipt` scaffold with cert, registration, discovered proxy ID, feature info, domain, and subnet state
-- does not yet generate or retrieve the cert tarball automatically
+- emits a local unsigned `SmartProxyReceipt` scaffold with certificate archive, registration, discovered proxy ID, feature info, domain, and subnet state
 - does not yet sync selected lifecycle content to the proxy
 
 ## Follow-on
 
 The next tranche should add:
-- certificate tarball generation / retrieval flow from the parent Foreman/Katello host
 - lifecycle-content sync policies
 - UEFI HTTP Boot artifact publication/verification
 - signed SmartProxyReceipt emission
