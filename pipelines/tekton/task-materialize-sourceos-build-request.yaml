@@ -1,0 +1,80 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: materialize-sourceos-build-request
+spec:
+  description: >-
+    Validate SourceOS build request parameters and emit a materialization receipt
+    for downstream SourceOS build automation.
+  params:
+    - name: contentSpecRef
+      type: string
+    - name: buildRequestRef
+      type: string
+    - name: channel
+      type: string
+      default: dev
+    - name: architecture
+      type: string
+      default: x86_64
+    - name: requestedBy
+      type: string
+    - name: overlayRefs
+      type: string
+      default: ""
+    - name: enrollmentProfileRef
+      type: string
+      default: ""
+    - name: agentplaneBundleRef
+      type: string
+      default: ""
+    - name: localExecutionProtocolRef
+      type: string
+      default: urn:srcos:contract:workstation-contracts:m2-ipc:v1.0
+    - name: remoteExecutionProtocolRef
+      type: string
+      default: urn:srcos:protocol:tritrpc:v1
+    - name: katelloProduct
+      type: string
+      default: SourceOS Files
+    - name: katelloRepository
+      type: string
+      default: sourceos-live-iso
+    - name: receiptPath
+      type: string
+      default: .workstation/reports/sourceos/build-request-materialization.json
+  workspaces:
+    - name: source
+      description: Workspace for emitted materialization receipt.
+  steps:
+    - name: materialize
+      image: docker.io/library/busybox:latest
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -eu
+        case "$(params.channel)" in dev|qa|prod) ;; *) echo "unsupported channel: $(params.channel)" >&2; exit 2 ;; esac
+        case "$(params.architecture)" in x86_64|aarch64) ;; *) echo "unsupported architecture: $(params.architecture)" >&2; exit 2 ;; esac
+        test -n "$(params.contentSpecRef)"
+        test -n "$(params.buildRequestRef)"
+        test -n "$(params.requestedBy)"
+        mkdir -p "$(dirname "$(params.receiptPath)")"
+        cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SourceOSBuildRequestMaterializationReceipt",
+          "contentSpecRef": "$(params.contentSpecRef)",
+          "buildRequestRef": "$(params.buildRequestRef)",
+          "channel": "$(params.channel)",
+          "architecture": "$(params.architecture)",
+          "requestedBy": "$(params.requestedBy)",
+          "overlayRefs": "$(params.overlayRefs)",
+          "enrollmentProfileRef": "$(params.enrollmentProfileRef)",
+          "agentplaneBundleRef": "$(params.agentplaneBundleRef)",
+          "localExecutionProtocolRef": "$(params.localExecutionProtocolRef)",
+          "remoteExecutionProtocolRef": "$(params.remoteExecutionProtocolRef)",
+          "katelloProduct": "$(params.katelloProduct)",
+          "katelloRepository": "$(params.katelloRepository)",
+          "receiptPath": "$(params.receiptPath)"
+        }
+        JSON
