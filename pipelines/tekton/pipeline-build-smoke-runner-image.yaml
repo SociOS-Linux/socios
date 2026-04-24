@@ -5,11 +5,15 @@ metadata:
 spec:
   description: >-
     Build, optionally publish, generate SBOM, scan, emit provenance, bundle evidence,
-    and optionally attest the SourceOS smoke-runner image used by live ISO smoke checks.
+    optionally attest, and optionally promote the SourceOS smoke-runner image used by
+    live ISO smoke checks.
   params:
     - name: imageRef
       type: string
       default: quay.io/socios/sourceos-smoke-runner:dev
+    - name: targetImageRef
+      type: string
+      default: quay.io/socios/sourceos-smoke-runner:release-candidate
     - name: baseImage
       type: string
       default: registry.fedoraproject.org/fedora-minimal@sha256:REPLACE_WITH_VERIFIED_DIGEST
@@ -25,6 +29,9 @@ spec:
     - name: attestEvidence
       type: string
       default: "false"
+    - name: promote
+      type: string
+      default: "false"
     - name: builderImage
       type: string
       default: quay.io/buildah/stable:latest
@@ -37,6 +44,9 @@ spec:
     - name: signingImage
       type: string
       default: gcr.io/projectsigstore/cosign:latest
+    - name: publisherImage
+      type: string
+      default: quay.io/skopeo/stable:latest
     - name: failOnSeverity
       type: string
       default: high
@@ -142,3 +152,20 @@ spec:
           value: $(params.sign)
         - name: signingImage
           value: $(params.signingImage)
+
+    - name: promote-smoke-runner-image
+      runAfter: [sign-smoke-runner-image]
+      taskRef:
+        name: promote-smoke-runner-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: sourceImageRef
+          value: $(params.imageRef)
+        - name: targetImageRef
+          value: $(params.targetImageRef)
+        - name: enabled
+          value: $(params.promote)
+        - name: publisherImage
+          value: $(params.publisherImage)
