@@ -12,6 +12,19 @@ spec:
     required: true
     format: spdx-json
     outputPath: .workstation/reports/sbom/sourceos-smoke-runner.spdx.json
+  scan:
+    required: true
+    provider: grype
+    failOnSeverity: high
+    outputPath: .workstation/reports/scans/sourceos-smoke-runner-grype.json
+  provenance:
+    required: true
+    outputPath: .workstation/reports/provenance/sourceos-smoke-runner-provenance.json
+    requiredRefs:
+      - imageRef
+      - baseImage
+      - sbomPath
+      - scanPath
   signing:
     required: false
     provider: cosign
@@ -19,3 +32,4 @@ spec:
   notes:
     - Replace baseImage.digest with a verified digest before enabling release publication.
     - Keep signing optional until cross-stack signing authority is finalized.
+    - Scan and provenance records are required for release-grade image promotion.
