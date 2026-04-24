@@ -4,8 +4,8 @@ metadata:
   name: sourceos-build-smoke-runner-image
 spec:
   description: >-
-    Build, optionally publish, generate SBOM, scan, emit provenance, and
-    optionally attest the SourceOS smoke-runner image used by live ISO smoke checks.
+    Build, optionally publish, generate SBOM, scan, emit provenance, bundle evidence,
+    and optionally attest the SourceOS smoke-runner image used by live ISO smoke checks.
   params:
     - name: imageRef
       type: string
@@ -20,6 +20,9 @@ spec:
       type: string
       default: "false"
     - name: sign
+      type: string
+      default: "false"
+    - name: attestEvidence
       type: string
       default: "false"
     - name: builderImage
@@ -99,8 +102,34 @@ spec:
         - name: baseImage
           value: $(params.baseImage)
 
-    - name: sign-smoke-runner-image
+    - name: bundle-smoke-runner-image-evidence
       runAfter: [provenance-smoke-runner-image]
+      taskRef:
+        name: bundle-smoke-runner-image-evidence
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: baseImage
+          value: $(params.baseImage)
+
+    - name: attest-smoke-runner-image-evidence
+      runAfter: [bundle-smoke-runner-image-evidence]
+      taskRef:
+        name: attest-smoke-runner-image-evidence
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: enabled
+          value: $(params.attestEvidence)
+        - name: attestationImage
+          value: $(params.signingImage)
+
+    - name: sign-smoke-runner-image
+      runAfter: [attest-smoke-runner-image-evidence]
       taskRef:
         name: sign-smoke-runner-image
       workspaces:
