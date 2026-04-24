@@ -5,8 +5,8 @@ metadata:
 spec:
   description: >-
     Check task image refs, verify base image, build, optionally publish, generate SBOM,
-    scan, emit provenance, bundle evidence, optionally attest, and optionally promote
-    the SourceOS smoke-runner image used by live ISO smoke checks.
+    scan, emit provenance, bundle evidence, optionally attest, optionally promote, and
+    optionally publish the evidence receipt for the SourceOS smoke-runner image.
   params:
     - name: imageRef
       type: string
@@ -30,6 +30,9 @@ spec:
       type: string
       default: "false"
     - name: attestEvidence
+      type: string
+      default: "false"
+    - name: publishEvidence
       type: string
       default: "false"
     - name: builderImage
@@ -56,6 +59,9 @@ spec:
     - name: failOnSeverity
       type: string
       default: high
+    - name: targetCatalogRef
+      type: string
+      default: sourceos://catalog/images/sourceos-smoke-runner
   workspaces:
     - name: source
   tasks:
@@ -215,3 +221,18 @@ spec:
           value: $(params.promote)
         - name: publisherImage
           value: $(params.publisherImage)
+
+    - name: publish-smoke-runner-image-evidence
+      runAfter: [promote-smoke-runner-image]
+      taskRef:
+        name: publish-smoke-runner-image-evidence
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: enabled
+          value: $(params.publishEvidence)
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: targetCatalogRef
+          value: $(params.targetCatalogRef)
