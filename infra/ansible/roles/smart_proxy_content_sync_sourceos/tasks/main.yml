@@ -118,3 +118,9 @@
         'contentViewLookup': (socios_smart_proxy_content_sync_content_view_lookup.results | default([])),
         'dryRun': socios_smart_proxy_content_sync_dry_run
       } | to_nice_json }}
+
+- name: Attest SourceOS Smart Proxy content policy receipt when enabled
+  ansible.builtin.include_tasks: attest_content_policy_receipt.yml
+  when:
+    - not socios_smart_proxy_content_sync_dry_run
+    - socios_smart_proxy_content_sync_receipt_attestation_enabled
