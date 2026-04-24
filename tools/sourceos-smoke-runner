@@ -1,0 +1,170 @@
+#!/usr/bin/env python3
+"""Minimal SourceOS/FCOS live ISO VM smoke runner.
+
+The runner is intentionally conservative:
+- validates that an ISO exists
+- starts QEMU with a serial log
+- optionally waits for an expected serial-log regex
+- otherwise treats a minimum runtime without early QEMU exit as a smoke pass
+- emits a JSON receipt for downstream evidence collection
+
+This does not replace full installer/integration tests. It is the first deterministic
+VM handoff check for SourceOS live ISO build lanes.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+from typing import Any
+
+
+def _now_ms() -> int:
+    return int(time.time() * 1000)
+
+
+def _read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except FileNotFoundError:
+        return ""
+
+
+def _terminate(proc: subprocess.Popen[Any]) -> None:
+    if proc.poll() is not None:
+        return
+    proc.terminate()
+    try:
+        proc.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait(timeout=10)
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(prog="sourceos-smoke-runner")
+    ap.add_argument("--iso", required=True, help="Path to live ISO to smoke-test")
+    ap.add_argument("--out-dir", required=True, help="Directory for smoke artifacts")
+    ap.add_argument("--qemu", default="qemu-system-x86_64", help="QEMU binary")
+    ap.add_argument("--timeout-seconds", type=int, default=300)
+    ap.add_argument("--min-runtime-seconds", type=int, default=20)
+    ap.add_argument("--memory-mib", type=int, default=2048)
+    ap.add_argument("--cpus", type=int, default=2)
+    ap.add_argument("--expect-regex", default="", help="Optional regex expected in serial log")
+    ap.add_argument("--extra-qemu-arg", action="append", default=[], help="Additional QEMU argument; repeatable")
+    args = ap.parse_args()
+
+    started = _now_ms()
+    iso = Path(args.iso).resolve()
+    out_dir = Path(args.out_dir).resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    serial_log = out_dir / "serial.log"
+    qemu_stdout = out_dir / "qemu.stdout.log"
+    qemu_stderr = out_dir / "qemu.stderr.log"
+    receipt_path = out_dir / "smoke-receipt.json"
+
+    receipt: dict[str, Any] = {
+        "apiVersion": "socios.sourceos.ai/v0",
+        "kind": "SourceOSLiveIsoSmokeReceipt",
+        "iso": str(iso),
+        "outDir": str(out_dir),
+        "qemu": args.qemu,
+        "timeoutSeconds": args.timeout_seconds,
+        "minRuntimeSeconds": args.min_runtime_seconds,
+        "memoryMiB": args.memory_mib,
+        "cpus": args.cpus,
+        "expectRegex": args.expect_regex,
+        "startedAtEpochMs": started,
+        "serialLog": str(serial_log),
+        "stdoutLog": str(qemu_stdout),
+        "stderrLog": str(qemu_stderr),
+        "status": "unknown",
+        "reason": "not-started",
+    }
+
+    def finish(status: str, reason: str, rc: int) -> int:
+        receipt["finishedAtEpochMs"] = _now_ms()
+        receipt["durationMs"] = receipt["finishedAtEpochMs"] - receipt["startedAtEpochMs"]
+        receipt["status"] = status
+        receipt["reason"] = reason
+        receipt["serialLogTail"] = _read_text(serial_log)[-8000:]
+        receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(f"[sourceos-smoke-runner] {status}: {reason}; receipt={receipt_path}")
+        return rc
+
+    if not iso.exists():
+        return finish("fail", f"iso not found: {iso}", 2)
+    if not iso.is_file():
+        return finish("fail", f"iso is not a file: {iso}", 2)
+    if shutil.which(args.qemu) is None:
+        return finish("fail", f"qemu binary not found: {args.qemu}", 2)
+    if args.timeout_seconds <= 0 or args.min_runtime_seconds < 0:
+        return finish("fail", "invalid timeout/min-runtime parameters", 2)
+
+    cmd = [
+        args.qemu,
+        "-m",
+        str(args.memory_mib),
+        "-smp",
+        str(args.cpus),
+        "-display",
+        "none",
+        "-serial",
+        f"file:{serial_log}",
+        "-no-reboot",
+        "-net",
+        "none",
+        "-boot",
+        "d",
+        "-cdrom",
+        str(iso),
+    ] + list(args.extra_qemu_arg)
+
+    receipt["command"] = cmd
+    receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    expect = re.compile(args.expect_regex) if args.expect_regex else None
+    with qemu_stdout.open("wb") as stdout_f, qemu_stderr.open("wb") as stderr_f:
+        proc = subprocess.Popen(cmd, stdout=stdout_f, stderr=stderr_f, preexec_fn=os.setsid)
+        receipt["pid"] = proc.pid
+        deadline = time.monotonic() + args.timeout_seconds
+        min_runtime_deadline = time.monotonic() + args.min_runtime_seconds
+        matched = False
+
+        while time.monotonic() < deadline:
+            rc = proc.poll()
+            if expect and expect.search(_read_text(serial_log)):
+                matched = True
+                _terminate(proc)
+                receipt["qemuExitCode"] = proc.returncode
+                return finish("pass", "expected serial pattern observed", 0)
+            if rc is not None:
+                receipt["qemuExitCode"] = rc
+                if time.monotonic() < min_runtime_deadline:
+                    return finish("fail", f"qemu exited before minimum runtime with code {rc}", 1)
+                if expect:
+                    return finish("fail", f"qemu exited before expected pattern with code {rc}", 1)
+                return finish("pass", f"qemu ran past minimum runtime and exited with code {rc}", 0)
+            if not expect and time.monotonic() >= min_runtime_deadline:
+                _terminate(proc)
+                receipt["qemuExitCode"] = proc.returncode
+                return finish("pass", "qemu survived minimum runtime", 0)
+            time.sleep(1)
+
+        _terminate(proc)
+        receipt["qemuExitCode"] = proc.returncode
+        if expect and not matched:
+            return finish("fail", "timeout before expected serial pattern", 1)
+        return finish("pass", "qemu survived full timeout", 0)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
