@@ -1,0 +1,76 @@
+---
+- name: Validate required Katello seed inputs when not in dry-run mode
+  ansible.builtin.assert:
+    that:
+      - socios_katello_server_url is not none
+      - socios_katello_server_url | length > 0
+    fail_msg: "Set socios_katello_server_url before real Katello seeding."
+
+- name: Explain dry-run posture for Katello seeding
+  ansible.builtin.debug:
+    msg:
+      - "Dry-run mode enabled; Katello product/repository create commands are not being executed."
+      - "Set socios_katello_seed_dry_run=false after hammer CLI auth/bootstrap is in place."
+  when: socios_katello_seed_dry_run
+
+- name: Create SourceOS file product
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - product
+      - create
+      - --name
+      - "{{ socios_katello_file_product }}"
+      - --organization
+      - "{{ socios_katello_organization }}"
+  when: not socios_katello_seed_dry_run
+
+- name: Create SourceOS file repositories
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - repository
+      - create
+      - --content-type
+      - "{{ item.content_type }}"
+      - --name
+      - "{{ item.name }}"
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --product
+      - "{{ socios_katello_file_product }}"
+  loop: "{{ socios_katello_file_repositories }}"
+  when: not socios_katello_seed_dry_run
+
+- name: Create SourceOS OSTree product
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - product
+      - create
+      - --name
+      - "{{ socios_katello_ostree_product }}"
+      - --organization
+      - "{{ socios_katello_organization }}"
+  when: not socios_katello_seed_dry_run
+
+- name: Create SourceOS OSTree repositories
+  ansible.builtin.command:
+    argv: >-
+      {{ [
+        'hammer',
+        '--server', socios_katello_server_url,
+        'repository', 'create',
+        '--content-type', item.content_type,
+        '--name', item.name,
+        '--organization', socios_katello_organization,
+        '--product', socios_katello_ostree_product
+      ] + ((item.url is not none and item.url | length > 0) | ternary(['--url', item.url], [])) }}
+  loop: "{{ socios_katello_ostree_repositories }}"
+  when: not socios_katello_seed_dry_run
