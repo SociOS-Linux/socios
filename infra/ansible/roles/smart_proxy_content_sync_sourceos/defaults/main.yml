@@ -1,0 +1,17 @@
+---
+socios_smart_proxy_content_sync_dry_run: true
+socios_smart_proxy_content_sync_server_url: https://foreman.example.com
+socios_smart_proxy_content_sync_organization: SourceOS
+socios_smart_proxy_content_sync_proxy_name: smart-proxy.example.com
+socios_smart_proxy_content_sync_verify_proxy: true
+socios_smart_proxy_content_sync_lifecycle_environments:
+  - dev
+  - qa
+  - prod
+socios_smart_proxy_content_sync_content_views:
+  - sourceos-workstation
+socios_smart_proxy_content_sync_policy: selected-lifecycle-content
+socios_smart_proxy_content_sync_mode: additive
+socios_smart_proxy_content_sync_trigger_sync: false
+socios_smart_proxy_content_sync_receipt_dir: /var/lib/socios/sourceos
+socios_smart_proxy_content_sync_receipt_path: "{{ socios_smart_proxy_content_sync_receipt_dir }}/smart-proxy-content-sync-receipt.json"
