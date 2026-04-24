@@ -2,6 +2,7 @@
 socios_smart_proxy_dry_run: true
 socios_smart_proxy_servername: smart-proxy.example.com
 socios_smart_proxy_parent_foreman_url: https://foreman.example.com
+socios_smart_proxy_parent_foreman_host: foreman.example.com
 socios_smart_proxy_location: Default
 socios_smart_proxy_organization: SourceOS
 socios_smart_proxy_features:
@@ -20,3 +21,8 @@ socios_smart_proxy_enable_content: true
 socios_smart_proxy_provisioning_subnet_cidr: null
 socios_smart_proxy_httpboot_root: /var/lib/tftpboot
 socios_smart_proxy_content_sync_policy: selected-lifecycle-content
+socios_smart_proxy_certs_tar_path: "/root/{{ socios_smart_proxy_servername }}-certs.tar"
+socios_smart_proxy_certs_source_hint: "Run foreman-proxy-certs-generate on the parent Foreman/Katello host and copy the archive here."
+socios_smart_proxy_registration_verify: true
+socios_smart_proxy_receipt_dir: /var/lib/socios/sourceos
+socios_smart_proxy_receipt_path: "{{ socios_smart_proxy_receipt_dir }}/smart-proxy-receipt.json"
