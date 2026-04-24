@@ -6,7 +6,28 @@
       - "Set socios_katello_lifecycle_dry_run=false after hammer auth and repository seeding are in place."
   when: socios_katello_lifecycle_dry_run
 
-- name: Create SourceOS lifecycle environments
+- name: Check SourceOS lifecycle environments
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - lifecycle-environment
+      - list
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --search
+      - "name = {{ item.name }}"
+      - --fields
+      - Id
+      - --csv
+  loop: "{{ socios_katello_lifecycle_environments }}"
+  register: socios_lifecycle_env_checks
+  changed_when: false
+  failed_when: false
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Create SourceOS lifecycle environments when missing
   ansible.builtin.command:
     argv:
       - hammer
@@ -21,9 +42,34 @@
       - --prior
       - "{{ item.prior }}"
   loop: "{{ socios_katello_lifecycle_environments }}"
+  loop_control:
+    extended: true
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_lifecycle_env_checks.results[ansible_loop.index0].stdout_lines | length <= 1
+
+- name: Check SourceOS content views
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - content-view
+      - list
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --search
+      - "name = {{ item.name }}"
+      - --fields
+      - Id
+      - --csv
+  loop: "{{ socios_katello_content_views }}"
+  register: socios_content_view_checks
+  changed_when: false
+  failed_when: false
   when: not socios_katello_lifecycle_dry_run
 
-- name: Create SourceOS content views
+- name: Create SourceOS content views when missing
   ansible.builtin.command:
     argv:
       - hammer
@@ -38,7 +84,11 @@
       - --description
       - "{{ item.description | default('SourceOS content view') }}"
   loop: "{{ socios_katello_content_views }}"
-  when: not socios_katello_lifecycle_dry_run
+  loop_control:
+    extended: true
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_content_view_checks.results[ansible_loop.index0].stdout_lines | length <= 1
 
 - name: Add repositories to SourceOS content views
   ansible.builtin.command:
@@ -57,6 +107,9 @@
       - --repository
       - "{{ item.1.name }}"
   loop: "{{ socios_katello_content_views | subelements('repositories') }}"
+  register: socios_content_view_repo_adds
+  changed_when: "'already' not in ((socios_content_view_repo_adds.stderr | default('')) | lower)"
+  failed_when: false
   when: not socios_katello_lifecycle_dry_run
 
 - name: Publish SourceOS content views
@@ -74,6 +127,7 @@
       - --description
       - "Initial SourceOS content view publication"
   loop: "{{ socios_katello_content_views }}"
+  register: socios_content_view_publish_results
   when: not socios_katello_lifecycle_dry_run
 
 - name: Promote SourceOS content views through lifecycle environments
@@ -94,7 +148,28 @@
   loop: "{{ socios_katello_content_views | product(socios_katello_lifecycle_environments) | list }}"
   when: not socios_katello_lifecycle_dry_run
 
-- name: Create SourceOS activation keys
+- name: Check SourceOS activation keys
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - activation-key
+      - list
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --search
+      - "name = {{ item.name }}"
+      - --fields
+      - Id
+      - --csv
+  loop: "{{ socios_katello_activation_keys }}"
+  register: socios_activation_key_checks
+  changed_when: false
+  failed_when: false
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Create SourceOS activation keys when missing
   ansible.builtin.command:
     argv:
       - hammer
@@ -113,4 +188,8 @@
       - --content-view
       - "{{ item.content_view }}"
   loop: "{{ socios_katello_activation_keys }}"
-  when: not socios_katello_lifecycle_dry_run
+  loop_control:
+    extended: true
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_activation_key_checks.results[ansible_loop.index0].stdout_lines | length <= 1
