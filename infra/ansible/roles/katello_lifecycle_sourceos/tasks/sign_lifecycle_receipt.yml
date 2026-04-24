@@ -1,0 +1,58 @@
+---
+- name: Validate lifecycle receipt signing provider
+  ansible.builtin.assert:
+    that:
+      - socios_katello_lifecycle_receipt_signing_provider in ['cosign']
+    fail_msg: "Unsupported lifecycle receipt signing provider: {{ socios_katello_lifecycle_receipt_signing_provider }}"
+
+- name: Validate lifecycle receipt exists before signing
+  ansible.builtin.stat:
+    path: "{{ socios_katello_lifecycle_receipt_path }}"
+  register: socios_katello_lifecycle_receipt_stat
+
+- name: Require lifecycle receipt before signing
+  ansible.builtin.assert:
+    that:
+      - socios_katello_lifecycle_receipt_stat.stat.exists
+    fail_msg: "Lifecycle receipt not found at {{ socios_katello_lifecycle_receipt_path }}."
+
+- name: Preview lifecycle receipt signing command
+  ansible.builtin.debug:
+    msg:
+      argv:
+        - cosign
+        - sign-blob
+        - --yes
+        - --output-signature
+        - "{{ socios_katello_lifecycle_receipt_signature_path }}"
+        - "{{ socios_katello_lifecycle_receipt_path }}"
+      identity_ref: "{{ socios_katello_lifecycle_receipt_signing_identity_ref }}"
+
+- name: Sign SourceOS Katello lifecycle receipt
+  ansible.builtin.command:
+    argv:
+      - cosign
+      - sign-blob
+      - --yes
+      - --output-signature
+      - "{{ socios_katello_lifecycle_receipt_signature_path }}"
+      - "{{ socios_katello_lifecycle_receipt_path }}"
+  register: socios_katello_lifecycle_receipt_sign_result
+  changed_when: true
+
+- name: Emit SourceOS Katello lifecycle signature metadata
+  ansible.builtin.copy:
+    dest: "{{ socios_katello_lifecycle_receipt_signature_metadata_path }}"
+    mode: "0640"
+    content: |
+      {{ {
+        'apiVersion': 'socios.sourceos.ai/v0',
+        'kind': 'KatelloLifecycleReceiptSignature',
+        'receiptPath': socios_katello_lifecycle_receipt_path,
+        'signaturePath': socios_katello_lifecycle_receipt_signature_path,
+        'provider': socios_katello_lifecycle_receipt_signing_provider,
+        'identityRef': socios_katello_lifecycle_receipt_signing_identity_ref,
+        'signResultRc': socios_katello_lifecycle_receipt_sign_result.rc,
+        'signResultStdout': socios_katello_lifecycle_receipt_sign_result.stdout_lines | default([]),
+        'signResultStderr': socios_katello_lifecycle_receipt_sign_result.stderr_lines | default([])
+      } | to_nice_json }}
