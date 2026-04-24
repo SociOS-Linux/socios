@@ -3,6 +3,8 @@ socios_katello_lifecycle_dry_run: true
 socios_katello_server_url: https://foreman.example.com
 socios_katello_organization: SourceOS
 socios_katello_content_view_promote_from_lifecycle_environment: Library
+socios_katello_receipt_dir: /var/lib/socios/sourceos
+socios_katello_lifecycle_receipt_path: "{{ socios_katello_receipt_dir }}/katello-lifecycle-receipt.json"
 socios_katello_lifecycle_environments:
   - name: dev
     prior: Library
