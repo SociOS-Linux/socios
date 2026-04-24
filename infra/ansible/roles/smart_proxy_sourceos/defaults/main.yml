@@ -12,6 +12,11 @@ socios_smart_proxy_features:
   - httpboot
   - templates
   - content
+socios_smart_proxy_expected_features:
+  - tftp
+  - templates
+  - content
+socios_smart_proxy_verify_features: true
 socios_smart_proxy_enable_dhcp: false
 socios_smart_proxy_enable_dns: false
 socios_smart_proxy_enable_tftp: true
