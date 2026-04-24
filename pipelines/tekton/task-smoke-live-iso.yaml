@@ -4,19 +4,23 @@ metadata:
   name: smoke-live-iso
 spec:
   description: >-
-    Scaffold smoke task for validating that a customized FCOS/SourceOS live ISO
-    can be handed to a virtualization-based smoke environment.
+    Smoke-check a customized FCOS/SourceOS live ISO with the repo-local smoke
+    runner and emit a JSON receipt.
   params:
     - name: runnerImage
       type: string
-      description: Image containing qemu or other smoke-runner tooling.
+      description: Image containing Python and required runtime tooling.
       default: quay.io/socios/sourceos-smoke-runner:latest
     - name: isoPath
       type: string
-      description: Path to the ISO to smoke-test.
+      description: Path to the ISO to smoke-check.
+    - name: outDir
+      type: string
+      description: Directory for smoke-check logs and receipt.
+      default: .workstation/state/smoke/sourceos-live-iso
   workspaces:
     - name: source
-      description: Workspace containing the built ISO.
+      description: Workspace containing the built ISO and checked-out socios repo.
   steps:
     - name: smoke
       image: $(params.runnerImage)
@@ -24,5 +28,7 @@ spec:
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
-        echo "[smoke-live-iso] scaffold: validate presence of $(params.isoPath) and hand off to VM smoke runner"
+        echo "[smoke-live-iso] checking ISO: $(params.isoPath)"
         test -f "$(params.isoPath)"
+        test -f ./tools/sourceos-smoke-runner
+        python3 ./tools/sourceos-smoke-runner --iso "$(params.isoPath)" --out-dir "$(params.outDir)"
