@@ -1,0 +1,21 @@
+apiVersion: socios.sourceos.ai/v0
+kind: ImagePolicy
+metadata:
+  name: sourceos-smoke-runner
+spec:
+  imageRef: quay.io/socios/sourceos-smoke-runner:dev
+  baseImage:
+    ref: registry.fedoraproject.org/fedora-minimal
+    digest: REPLACE_WITH_VERIFIED_DIGEST
+    requireDigest: true
+  sbom:
+    required: true
+    format: spdx-json
+    outputPath: .workstation/reports/sbom/sourceos-smoke-runner.spdx.json
+  signing:
+    required: false
+    provider: cosign
+    signaturePath: .workstation/reports/attest/sourceos-smoke-runner.sig
+  notes:
+    - Replace baseImage.digest with a verified digest before enabling release publication.
+    - Keep signing optional until cross-stack signing authority is finalized.
