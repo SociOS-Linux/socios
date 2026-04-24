@@ -1,0 +1,22 @@
+---
+socios_smart_proxy_dry_run: true
+socios_smart_proxy_servername: smart-proxy.example.com
+socios_smart_proxy_parent_foreman_url: https://foreman.example.com
+socios_smart_proxy_location: Default
+socios_smart_proxy_organization: SourceOS
+socios_smart_proxy_features:
+  - dhcp
+  - dns
+  - tftp
+  - httpboot
+  - templates
+  - content
+socios_smart_proxy_enable_dhcp: false
+socios_smart_proxy_enable_dns: false
+socios_smart_proxy_enable_tftp: true
+socios_smart_proxy_enable_httpboot: true
+socios_smart_proxy_enable_templates: true
+socios_smart_proxy_enable_content: true
+socios_smart_proxy_provisioning_subnet_cidr: null
+socios_smart_proxy_httpboot_root: /var/lib/tftpboot
+socios_smart_proxy_content_sync_policy: selected-lifecycle-content
