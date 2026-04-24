@@ -24,6 +24,7 @@ socios_smart_proxy_content_sync_policy: selected-lifecycle-content
 socios_smart_proxy_certs_tar_path: "/root/{{ socios_smart_proxy_servername }}-certs.tar"
 socios_smart_proxy_certs_source_hint: "Run foreman-proxy-certs-generate on the parent Foreman/Katello host and copy the archive here."
 socios_smart_proxy_registration_verify: true
+socios_smart_proxy_auto_discover_proxy_ids: true
 socios_smart_proxy_receipt_dir: /var/lib/socios/sourceos
 socios_smart_proxy_receipt_path: "{{ socios_smart_proxy_receipt_dir }}/smart-proxy-receipt.json"
 socios_smart_proxy_network_bindings_enabled: true
