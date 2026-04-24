@@ -4,8 +4,8 @@ metadata:
   name: sourceos-build-smoke-runner-image
 spec:
   description: >-
-    Build, optionally publish, generate SBOM, and optionally sign the SourceOS
-    smoke-runner image used by live ISO smoke checks.
+    Build, optionally publish, generate SBOM, scan, emit provenance, and
+    optionally attest the SourceOS smoke-runner image used by live ISO smoke checks.
   params:
     - name: imageRef
       type: string
@@ -28,9 +28,15 @@ spec:
     - name: sbomImage
       type: string
       default: anchore/syft:latest
+    - name: scannerImage
+      type: string
+      default: anchore/grype:latest
     - name: signingImage
       type: string
       default: gcr.io/projectsigstore/cosign:latest
+    - name: failOnSeverity
+      type: string
+      default: high
   workspaces:
     - name: source
   tasks:
@@ -65,8 +71,36 @@ spec:
         - name: sbomImage
           value: $(params.sbomImage)
 
-    - name: sign-smoke-runner-image
+    - name: scan-smoke-runner-image
       runAfter: [sbom-smoke-runner-image]
+      taskRef:
+        name: scan-smoke-runner-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: scannerImage
+          value: $(params.scannerImage)
+        - name: failOnSeverity
+          value: $(params.failOnSeverity)
+
+    - name: provenance-smoke-runner-image
+      runAfter: [scan-smoke-runner-image]
+      taskRef:
+        name: provenance-smoke-runner-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: baseImage
+          value: $(params.baseImage)
+
+    - name: sign-smoke-runner-image
+      runAfter: [provenance-smoke-runner-image]
       taskRef:
         name: sign-smoke-runner-image
       workspaces:
