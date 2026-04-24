@@ -13,7 +13,27 @@
       - "Set socios_katello_seed_dry_run=false after hammer CLI auth/bootstrap is in place."
   when: socios_katello_seed_dry_run
 
-- name: Create SourceOS file product
+- name: Check SourceOS file product
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - product
+      - list
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --search
+      - "name = {{ socios_katello_file_product }}"
+      - --fields
+      - Id
+      - --csv
+  register: socios_file_product_check
+  changed_when: false
+  failed_when: false
+  when: not socios_katello_seed_dry_run
+
+- name: Create SourceOS file product when missing
   ansible.builtin.command:
     argv:
       - hammer
@@ -25,9 +45,34 @@
       - "{{ socios_katello_file_product }}"
       - --organization
       - "{{ socios_katello_organization }}"
+  when:
+    - not socios_katello_seed_dry_run
+    - socios_file_product_check.stdout_lines | length <= 1
+
+- name: Check SourceOS file repositories
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - repository
+      - list
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --product
+      - "{{ socios_katello_file_product }}"
+      - --search
+      - "name = {{ item.name }}"
+      - --fields
+      - Id
+      - --csv
+  loop: "{{ socios_katello_file_repositories }}"
+  register: socios_file_repo_checks
+  changed_when: false
+  failed_when: false
   when: not socios_katello_seed_dry_run
 
-- name: Create SourceOS file repositories
+- name: Create SourceOS file repositories when missing
   ansible.builtin.command:
     argv:
       - hammer
@@ -44,9 +89,33 @@
       - --product
       - "{{ socios_katello_file_product }}"
   loop: "{{ socios_katello_file_repositories }}"
+  loop_control:
+    extended: true
+  when:
+    - not socios_katello_seed_dry_run
+    - socios_file_repo_checks.results[ansible_loop.index0].stdout_lines | length <= 1
+
+- name: Check SourceOS OSTree product
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - product
+      - list
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --search
+      - "name = {{ socios_katello_ostree_product }}"
+      - --fields
+      - Id
+      - --csv
+  register: socios_ostree_product_check
+  changed_when: false
+  failed_when: false
   when: not socios_katello_seed_dry_run
 
-- name: Create SourceOS OSTree product
+- name: Create SourceOS OSTree product when missing
   ansible.builtin.command:
     argv:
       - hammer
@@ -58,9 +127,34 @@
       - "{{ socios_katello_ostree_product }}"
       - --organization
       - "{{ socios_katello_organization }}"
+  when:
+    - not socios_katello_seed_dry_run
+    - socios_ostree_product_check.stdout_lines | length <= 1
+
+- name: Check SourceOS OSTree repositories
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - repository
+      - list
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --product
+      - "{{ socios_katello_ostree_product }}"
+      - --search
+      - "name = {{ item.name }}"
+      - --fields
+      - Id
+      - --csv
+  loop: "{{ socios_katello_ostree_repositories }}"
+  register: socios_ostree_repo_checks
+  changed_when: false
+  failed_when: false
   when: not socios_katello_seed_dry_run
 
-- name: Create SourceOS OSTree repositories
+- name: Create SourceOS OSTree repositories when missing
   ansible.builtin.command:
     argv: >-
       {{ [
@@ -73,4 +167,8 @@
         '--product', socios_katello_ostree_product
       ] + ((item.url is not none and item.url | length > 0) | ternary(['--url', item.url], [])) }}
   loop: "{{ socios_katello_ostree_repositories }}"
-  when: not socios_katello_seed_dry_run
+  loop_control:
+    extended: true
+  when:
+    - not socios_katello_seed_dry_run
+    - socios_ostree_repo_checks.results[ansible_loop.index0].stdout_lines | length <= 1
