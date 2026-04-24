@@ -130,6 +130,27 @@
   register: socios_content_view_publish_results
   when: not socios_katello_lifecycle_dry_run
 
+- name: Lookup latest SourceOS content-view versions after publish
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - content-view
+      - version
+      - list
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --content-view
+      - "{{ item.name }}"
+      - --fields
+      - Id,Version
+      - --csv
+  loop: "{{ socios_katello_content_views }}"
+  register: socios_content_view_version_lists
+  changed_when: false
+  when: not socios_katello_lifecycle_dry_run
+
 - name: Promote SourceOS content views through lifecycle environments
   ansible.builtin.command:
     argv:
@@ -143,6 +164,8 @@
       - "{{ socios_katello_organization }}"
       - --content-view
       - "{{ item.0.name }}"
+      - --from-lifecycle-environment
+      - "{{ socios_katello_content_view_promote_from_lifecycle_environment }}"
       - --to-lifecycle-environment
       - "{{ item.1.name }}"
   loop: "{{ socios_katello_content_views | product(socios_katello_lifecycle_environments) | list }}"
@@ -193,3 +216,24 @@
   when:
     - not socios_katello_lifecycle_dry_run
     - socios_activation_key_checks.results[ansible_loop.index0].stdout_lines | length <= 1
+
+- name: Apply SourceOS activation-key content overrides
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - activation-key
+      - content-override
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.0.name }}"
+      - --content-label
+      - "{{ item.1.content_label }}"
+      - --override-name
+      - "{{ item.1.override_name }}"
+      - --value
+      - "{{ item.1.value | string | lower }}"
+  loop: "{{ socios_katello_activation_keys | subelements('content_overrides', skip_missing=True) }}"
+  when: not socios_katello_lifecycle_dry_run
