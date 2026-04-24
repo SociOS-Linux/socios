@@ -1,0 +1,85 @@
+---
+- name: Assert supported Smart Proxy substrate
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - (ansible_distribution_major_version | int) >= 9
+      - ansible_architecture in ['x86_64', 'amd64']
+    fail_msg: "SourceOS Smart Proxy hosts should run on dedicated EL9 x86_64-class systems."
+
+- name: Show SourceOS Smart Proxy desired feature posture
+  ansible.builtin.debug:
+    msg:
+      servername: "{{ socios_smart_proxy_servername }}"
+      parent_foreman_url: "{{ socios_smart_proxy_parent_foreman_url }}"
+      organization: "{{ socios_smart_proxy_organization }}"
+      location: "{{ socios_smart_proxy_location }}"
+      features: "{{ socios_smart_proxy_features }}"
+      dhcp: "{{ socios_smart_proxy_enable_dhcp }}"
+      dns: "{{ socios_smart_proxy_enable_dns }}"
+      tftp: "{{ socios_smart_proxy_enable_tftp }}"
+      httpboot: "{{ socios_smart_proxy_enable_httpboot }}"
+      templates: "{{ socios_smart_proxy_enable_templates }}"
+      content: "{{ socios_smart_proxy_enable_content }}"
+      content_sync_policy: "{{ socios_smart_proxy_content_sync_policy }}"
+
+- name: Explain dry-run posture for Smart Proxy scaffold
+  ansible.builtin.debug:
+    msg:
+      - "Dry-run mode enabled; Smart Proxy installer command is not being executed."
+      - "Set socios_smart_proxy_dry_run=false after installer flags and certificates are pinned."
+  when: socios_smart_proxy_dry_run
+
+- name: Preview SourceOS Smart Proxy installer command
+  ansible.builtin.debug:
+    msg:
+      argv:
+        - foreman-installer
+        - --scenario
+        - foreman-proxy-content
+        - --certs-tar
+        - /root/smart-proxy-certs.tar
+        - --foreman-proxy-register-in-foreman
+        - true
+        - --foreman-proxy-foreman-base-url
+        - "{{ socios_smart_proxy_parent_foreman_url }}"
+        - --foreman-proxy-tftp
+        - "{{ socios_smart_proxy_enable_tftp | string | lower }}"
+        - --foreman-proxy-templates
+        - "{{ socios_smart_proxy_enable_templates | string | lower }}"
+  when: socios_smart_proxy_dry_run
+
+- name: Run SourceOS Smart Proxy installer command
+  ansible.builtin.command:
+    argv:
+      - foreman-installer
+      - --scenario
+      - foreman-proxy-content
+      - --certs-tar
+      - /root/smart-proxy-certs.tar
+      - --foreman-proxy-register-in-foreman
+      - true
+      - --foreman-proxy-foreman-base-url
+      - "{{ socios_smart_proxy_parent_foreman_url }}"
+      - --foreman-proxy-tftp
+      - "{{ socios_smart_proxy_enable_tftp | string | lower }}"
+      - --foreman-proxy-templates
+      - "{{ socios_smart_proxy_enable_templates | string | lower }}"
+  when: not socios_smart_proxy_dry_run
+
+- name: Emit SourceOS Smart Proxy scaffold receipt
+  ansible.builtin.copy:
+    dest: /var/lib/socios/sourceos/smart-proxy-receipt.json
+    mode: "0640"
+    content: |
+      {{ {
+        'apiVersion': 'socios.sourceos.ai/v0',
+        'kind': 'SmartProxyReceipt',
+        'servername': socios_smart_proxy_servername,
+        'parentForemanUrl': socios_smart_proxy_parent_foreman_url,
+        'organization': socios_smart_proxy_organization,
+        'location': socios_smart_proxy_location,
+        'features': socios_smart_proxy_features,
+        'contentSyncPolicy': socios_smart_proxy_content_sync_policy,
+        'dryRun': socios_smart_proxy_dry_run
+      } | to_nice_json }}
