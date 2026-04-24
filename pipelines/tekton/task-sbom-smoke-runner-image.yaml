@@ -1,0 +1,32 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: sbom-smoke-runner-image
+spec:
+  description: >-
+    Generate an SBOM for the SourceOS smoke-runner image.
+  params:
+    - name: sbomImage
+      type: string
+      description: Image containing syft.
+      default: anchore/syft:latest
+    - name: imageRef
+      type: string
+      description: Image ref to inspect.
+      default: quay.io/socios/sourceos-smoke-runner:dev
+    - name: sbomPath
+      type: string
+      description: SBOM output path.
+      default: .workstation/reports/sbom/sourceos-smoke-runner.spdx.json
+  workspaces:
+    - name: source
+      description: Workspace for report output.
+  steps:
+    - name: sbom
+      image: $(params.sbomImage)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+        mkdir -p "$(dirname "$(params.sbomPath)")"
+        syft "$(params.imageRef)" -o spdx-json="$(params.sbomPath)"
