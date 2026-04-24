@@ -316,3 +316,9 @@
         'activationKeyProductContentVerifications': (socios_activation_key_product_content_verifications.results | default([]))
       } | to_nice_json }}
   when: not socios_katello_lifecycle_dry_run
+
+- name: Sign SourceOS Katello lifecycle receipt when enabled
+  ansible.builtin.include_tasks: sign_lifecycle_receipt.yml
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_katello_lifecycle_receipt_signing_enabled
