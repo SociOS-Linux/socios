@@ -11,6 +11,9 @@ The role models:
 - registration verification using `hammer proxy list`
 - TFTP / HTTP boot / template / content feature posture
 - optional DHCP and DNS posture
+- domain creation/checks using Hammer CLI
+- subnet creation/checks using Hammer CLI
+- subnet bindings for domain, organization, location, and optional DHCP/DNS/TFTP proxy IDs
 - a SmartProxyReceipt artifact for auditability
 
 ## Current posture
@@ -19,16 +22,17 @@ The role models:
 - previews the intended `foreman-installer --scenario foreman-proxy-content` command
 - requires a cert tarball before non-dry-run installation
 - verifies Smart Proxy registration after non-dry-run installation when enabled
-- emits a local unsigned `SmartProxyReceipt` scaffold with cert and registration state
+- can create missing domains and subnets when `socios_smart_proxy_network_bindings_enabled=true`
+- emits a local unsigned `SmartProxyReceipt` scaffold with cert, registration, domain, and subnet state
 - does not yet generate or retrieve the cert tarball automatically
-- does not yet configure DHCP/DNS/subnets
+- does not yet verify DHCP/DNS/TFTP proxy ID correctness against the registered proxy
 - does not yet sync selected lifecycle content to the proxy
 
 ## Follow-on
 
 The next tranche should add:
 - certificate tarball generation / retrieval flow from the parent Foreman/Katello host
-- subnet and domain binding
+- DHCP/DNS/TFTP proxy ID discovery from `hammer proxy list/info`
 - lifecycle-content sync policies
 - UEFI HTTP Boot artifact publication/verification
 - signed SmartProxyReceipt emission
