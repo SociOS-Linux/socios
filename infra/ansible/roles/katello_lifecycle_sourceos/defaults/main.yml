@@ -1,0 +1,34 @@
+---
+socios_katello_lifecycle_dry_run: true
+socios_katello_server_url: https://foreman.example.com
+socios_katello_organization: SourceOS
+socios_katello_lifecycle_environments:
+  - name: dev
+    prior: Library
+  - name: qa
+    prior: dev
+  - name: prod
+    prior: qa
+socios_katello_content_views:
+  - name: sourceos-workstation
+    description: SourceOS Workstation release snapshot
+    repositories:
+      - product: SourceOS Files
+        name: sourceos-live-iso
+      - product: SourceOS Files
+        name: sourceos-disk-images
+      - product: SourceOS Files
+        name: sourceos-config-bundles
+socios_katello_activation_keys:
+  - name: sourceos-workstation-dev
+    lifecycle_environment: dev
+    content_view: sourceos-workstation
+    description: Development enrollment key for SourceOS Workstation
+  - name: sourceos-workstation-qa
+    lifecycle_environment: qa
+    content_view: sourceos-workstation
+    description: QA enrollment key for SourceOS Workstation
+  - name: sourceos-workstation-prod
+    lifecycle_environment: prod
+    content_view: sourceos-workstation
+    description: Production enrollment key for SourceOS Workstation
