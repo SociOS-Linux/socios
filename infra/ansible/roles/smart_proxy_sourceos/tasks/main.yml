@@ -355,3 +355,9 @@
         'installerResultRc': (socios_smart_proxy_installer_result.rc | default(None)),
         'dryRun': socios_smart_proxy_dry_run
       } | to_nice_json }}
+
+- name: Attest SourceOS Smart Proxy receipt when enabled
+  ansible.builtin.include_tasks: attest_smart_proxy_receipt.yml
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_receipt_attestation_enabled
