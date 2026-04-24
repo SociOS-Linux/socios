@@ -15,3 +15,8 @@ socios_smart_proxy_content_sync_mode: additive
 socios_smart_proxy_content_sync_trigger_sync: false
 socios_smart_proxy_content_sync_receipt_dir: /var/lib/socios/sourceos
 socios_smart_proxy_content_sync_receipt_path: "{{ socios_smart_proxy_content_sync_receipt_dir }}/smart-proxy-content-sync-receipt.json"
+socios_smart_proxy_content_sync_receipt_attestation_enabled: false
+socios_smart_proxy_content_sync_receipt_attestation_provider: cosign
+socios_smart_proxy_content_sync_receipt_attestation_identity_ref: null
+socios_smart_proxy_content_sync_receipt_attestation_path: "{{ socios_smart_proxy_content_sync_receipt_path }}.attestation.json"
+socios_smart_proxy_content_sync_receipt_attestation_blob_path: "{{ socios_smart_proxy_content_sync_receipt_path }}.sig"
