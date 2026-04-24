@@ -28,6 +28,12 @@ socios_smart_proxy_httpboot_root: /var/lib/tftpboot
 socios_smart_proxy_content_sync_policy: selected-lifecycle-content
 socios_smart_proxy_certs_tar_path: "/root/{{ socios_smart_proxy_servername }}-certs.tar"
 socios_smart_proxy_certs_source_hint: "Run foreman-proxy-certs-generate on the parent Foreman/Katello host and copy the archive here."
+socios_smart_proxy_cert_archive_auto_retrieve: false
+socios_smart_proxy_cert_archive_generate_on_parent: false
+socios_smart_proxy_cert_archive_parent_host: "{{ socios_smart_proxy_parent_foreman_host }}"
+socios_smart_proxy_cert_archive_parent_path: "/root/{{ socios_smart_proxy_servername }}-certs.tar"
+socios_smart_proxy_cert_archive_local_tmp: "/tmp/{{ socios_smart_proxy_servername }}-certs.tar"
+socios_smart_proxy_cert_archive_retain_parent_copy: true
 socios_smart_proxy_registration_verify: true
 socios_smart_proxy_auto_discover_proxy_ids: true
 socios_smart_proxy_receipt_dir: /var/lib/socios/sourceos
