@@ -8,6 +8,7 @@ LABEL org.opencontainers.image.source="https://github.com/SociOS-Linux/socios"
 RUN microdnf install -y \
       ruby \
       rubygems \
+      python3 \
       ca-certificates \
       jq \
       coreutils \
