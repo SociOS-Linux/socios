@@ -15,6 +15,9 @@ spec:
       type: string
     - name: artifactPaths
       type: string
+    - name: channel
+      type: string
+      default: dev
     - name: hammerRunnerImage
       type: string
       default: quay.io/socios/sourceos-hammer-runner:dev
@@ -55,6 +58,8 @@ spec:
           value: $(params.buildRequestRef)
         - name: requestedBy
           value: $(params.requestedBy)
+        - name: channel
+          value: $(params.channel)
         - name: katelloProduct
           value: $(params.product)
         - name: katelloRepository
@@ -123,5 +128,7 @@ spec:
         - name: source
           workspace: source
       params:
+        - name: channel
+          value: $(params.channel)
         - name: lifecycleReceiptPath
           value: $(params.lifecycleReceiptPath)
