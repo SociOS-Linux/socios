@@ -1,0 +1,49 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: link-sourceos-upload-lifecycle-receipts
+spec:
+  description: >-
+    Link SourceOS Katello upload receipts with lifecycle publication/promote receipts
+    into a downstream evidence receipt.
+  params:
+    - name: uploadReceiptPath
+      type: string
+      default: .workstation/reports/sourceos/katello-hammer-upload.json
+    - name: uploadVerificationReceiptPath
+      type: string
+      default: .workstation/reports/sourceos/katello-hammer-upload-verification.json
+    - name: lifecycleReceiptPath
+      type: string
+      default: /var/lib/socios/sourceos/katello-lifecycle-receipt.json
+    - name: receiptPath
+      type: string
+      default: .workstation/reports/sourceos/upload-lifecycle-link-receipt.json
+  workspaces:
+    - name: source
+      description: Workspace containing upload receipts and downstream evidence output.
+  steps:
+    - name: link
+      image: docker.io/library/busybox:latest
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -eu
+        test -f "$(params.uploadReceiptPath)"
+        test -f "$(params.uploadVerificationReceiptPath)"
+        lifecycle_status="present"
+        if [ ! -f "$(params.lifecycleReceiptPath)" ]; then
+          lifecycle_status="missing"
+        fi
+        mkdir -p "$(dirname "$(params.receiptPath)")"
+        cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SourceOSUploadLifecycleLinkReceipt",
+          "uploadReceiptPath": "$(params.uploadReceiptPath)",
+          "uploadVerificationReceiptPath": "$(params.uploadVerificationReceiptPath)",
+          "lifecycleReceiptPath": "$(params.lifecycleReceiptPath)",
+          "lifecycleReceiptStatus": "${lifecycle_status}",
+          "receiptPath": "$(params.receiptPath)"
+        }
+        JSON
