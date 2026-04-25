@@ -23,10 +23,13 @@ class SourceOSKatelloHammerUploadShapeTests(unittest.TestCase):
             [
                 "upload-sourceos-artifacts-with-hammer",
                 "SourceOSKatelloHammerUploadReceipt",
-                "SourceOSKatelloHammerUploadVerificationReceipt",
+                "SourceOSKatelloUploadedArtifactVerificationReceipt",
                 "artifactBuildReceiptPath",
                 "hammerRunnerImage",
                 "repository upload-content",
+                "file list",
+                "repositoryListingPath",
+                "verify-katello-uploaded-artifacts",
                 "enabled",
             ],
         )
@@ -45,7 +48,7 @@ class SourceOSKatelloHammerUploadShapeTests(unittest.TestCase):
             ],
         )
 
-    def test_hammer_upload_doc_preserves_safety_posture(self) -> None:
+    def test_hammer_upload_doc_preserves_safety_posture_and_verification_scope(self) -> None:
         text = read("docs/sourceos/katello-hammer-upload-v0.md")
         self.assertContainsAll(
             text,
@@ -55,6 +58,8 @@ class SourceOSKatelloHammerUploadShapeTests(unittest.TestCase):
                 "SourceOS remains artifact truth",
                 "catalog publication remains separate",
                 "uploadEnabled=true",
+                "SourceOSKatelloUploadedArtifactVerificationReceipt",
+                "checksum-level Katello content verification",
             ],
         )
 

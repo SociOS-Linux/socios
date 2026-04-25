@@ -18,7 +18,7 @@ BuildRequest-style params
   -> publish-sourceos-artifacts-to-katello
   -> upload-sourceos-artifacts-with-hammer
   -> SourceOSKatelloHammerUploadReceipt
-  -> SourceOSKatelloHammerUploadVerificationReceipt
+  -> SourceOSKatelloUploadedArtifactVerificationReceipt
 ```
 
 ## Safety posture
@@ -43,9 +43,15 @@ If upload is disabled, the task still validates local artifact paths and emits s
 
 ## Verification posture
 
-The v0 verification step records repository info after upload when enabled.
+When upload is enabled, the task now captures `hammer file list` output for the target organization/product/repository and invokes `tools/verify-katello-uploaded-artifacts`.
 
-It does not yet assert that every uploaded artifact appears in repository content listings. That should be added once stable Hammer output for file content listing is validated.
+The verifier checks that every expected artifact basename appears in the captured listing output and emits:
+
+```text
+SourceOSKatelloUploadedArtifactVerificationReceipt
+```
+
+This is still intentionally conservative. It verifies artifact-name visibility, not checksum parity inside Katello. Checksum-level verification should be added after stable Hammer file checksum output is validated in the target Foreman/Katello version.
 
 ## Non-goals
 
@@ -53,10 +59,11 @@ It does not yet assert that every uploaded artifact appears in repository conten
 - no catalog publication
 - no credential handling
 - no release promotion
+- no checksum-level Katello content verification yet
 
 ## Follow-on work
 
 - add Hammer-capable runner image digest/SBOM/scan policy hardening
-- verify uploaded artifact names/checksums against Katello repository content listings
+- add checksum-level verification against Katello file listing/details when stable output is validated
 - connect upload receipt to content-view publish/promote receipts
 - connect upload receipt to catalog publication request generation
