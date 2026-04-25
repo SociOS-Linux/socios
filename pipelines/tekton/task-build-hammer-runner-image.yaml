@@ -1,0 +1,68 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: build-hammer-runner-image
+spec:
+  description: >-
+    Build the SourceOS Hammer runner image from images/sourceos-hammer-runner/Containerfile.
+  params:
+    - name: builderImage
+      type: string
+      description: Image containing buildah.
+      default: quay.io/buildah/stable:latest
+    - name: imageRef
+      type: string
+      default: quay.io/socios/sourceos-hammer-runner:dev
+    - name: baseImage
+      type: string
+      default: registry.fedoraproject.org/fedora-minimal@sha256:REPLACE_WITH_VERIFIED_DIGEST
+    - name: requirePinnedBase
+      type: string
+      default: "true"
+    - name: contextDir
+      type: string
+      default: .
+    - name: containerfile
+      type: string
+      default: images/sourceos-hammer-runner/Containerfile
+    - name: receiptPath
+      type: string
+      default: .workstation/reports/images/sourceos-hammer-runner-build.json
+    - name: push
+      type: string
+      default: "false"
+  workspaces:
+    - name: source
+      description: Checked-out socios repository.
+  steps:
+    - name: build
+      image: $(params.builderImage)
+      workingDir: $(workspaces.source.path)/$(params.contextDir)
+      securityContext:
+        privileged: true
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        if [[ "$(params.requirePinnedBase)" == "true" && "$(params.baseImage)" != *@sha256:* ]]; then
+          echo "baseImage must be digest-pinned when requirePinnedBase=true" >&2
+          exit 2
+        fi
+        mkdir -p "$(dirname "$(params.receiptPath)")"
+        buildah bud \
+          --build-arg "BASE_IMAGE=$(params.baseImage)" \
+          -f "$(params.containerfile)" \
+          -t "$(params.imageRef)" .
+        if [[ "$(params.push)" == "true" ]]; then
+          buildah push "$(params.imageRef)"
+        fi
+        cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "HammerRunnerImageBuildReceipt",
+          "imageRef": "$(params.imageRef)",
+          "baseImage": "$(params.baseImage)",
+          "requirePinnedBase": "$(params.requirePinnedBase)",
+          "containerfile": "$(params.containerfile)",
+          "pushed": "$(params.push)"
+        }
+        JSON
