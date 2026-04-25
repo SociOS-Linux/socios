@@ -31,7 +31,7 @@ BuildRequest-style params
 - SourceOS remains artifact truth
 - catalog publication remains separate
 
-## Execution gate
+## Execution gates
 
 Actual upload is controlled by:
 
@@ -39,19 +39,27 @@ Actual upload is controlled by:
 uploadEnabled=true
 ```
 
+Optional checksum-level verification is controlled by:
+
+```text
+verifyChecksums=true
+```
+
 If upload is disabled, the task still validates local artifact paths and emits skipped receipts.
 
 ## Verification posture
 
-When upload is enabled, the task now captures `hammer file list` output for the target organization/product/repository and invokes `tools/verify-katello-uploaded-artifacts`.
+When upload is enabled, the task captures `hammer file list` output for the target organization/product/repository and invokes `tools/verify-katello-uploaded-artifacts`.
 
-The verifier checks that every expected artifact basename appears in the captured listing output and emits:
+The verifier always checks that every expected artifact basename appears in the captured listing output and emits:
 
 ```text
 SourceOSKatelloUploadedArtifactVerificationReceipt
 ```
 
-This is still intentionally conservative. It verifies artifact-name visibility, not checksum parity inside Katello. Checksum-level verification should be added after stable Hammer file checksum output is validated in the target Foreman/Katello version.
+When `verifyChecksums=true`, the verifier additionally computes local SHA-256 hashes and requires those hash values to appear in the captured listing output.
+
+This is intentionally gated because checksum field availability may vary by target Foreman/Katello version and file listing configuration.
 
 ## Non-goals
 
@@ -59,11 +67,11 @@ This is still intentionally conservative. It verifies artifact-name visibility, 
 - no catalog publication
 - no credential handling
 - no release promotion
-- no checksum-level Katello content verification yet
+- no automatic checksum verification unless explicitly enabled
 
 ## Follow-on work
 
 - add Hammer-capable runner image digest/SBOM/scan policy hardening
-- add checksum-level verification against Katello file listing/details when stable output is validated
+- validate checksum output against the exact target Foreman/Katello version
 - connect upload receipt to content-view publish/promote receipts
 - connect upload receipt to catalog publication request generation

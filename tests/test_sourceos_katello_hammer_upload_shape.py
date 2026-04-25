@@ -30,6 +30,8 @@ class SourceOSKatelloHammerUploadShapeTests(unittest.TestCase):
                 "file list",
                 "repositoryListingPath",
                 "verify-katello-uploaded-artifacts",
+                "verifyChecksums",
+                "--verify-checksums",
                 "enabled",
             ],
         )
@@ -58,8 +60,9 @@ class SourceOSKatelloHammerUploadShapeTests(unittest.TestCase):
                 "SourceOS remains artifact truth",
                 "catalog publication remains separate",
                 "uploadEnabled=true",
+                "verifyChecksums=true",
                 "SourceOSKatelloUploadedArtifactVerificationReceipt",
-                "checksum-level Katello content verification",
+                "checksum-level verification",
             ],
         )
 

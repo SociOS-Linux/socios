@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -32,6 +33,27 @@ class VerifyKatelloUploadedArtifactsTests(unittest.TestCase):
         result = module.verify(listing, ["dist/sourceos-live.iso", ""])
         self.assertEqual(result["expected"], ["sourceos-live.iso"])
         self.assertEqual(result["status"], "pass")
+
+    def test_verify_checksum_passes_when_digest_is_present(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            artifact = Path(td) / "sourceos-live.iso"
+            artifact.write_text("sourceos test artifact", encoding="utf-8")
+            digest = module.sha256_file(artifact)
+            listing = f"Name,Checksum\nsourceos-live.iso,{digest}\n"
+            result = module.verify(listing, [str(artifact)], verify_checksums=True)
+            self.assertEqual(result["status"], "pass")
+            self.assertEqual(result["missingChecksums"], [])
+            self.assertTrue(result["artifacts"][0]["checksumPresent"])
+
+    def test_verify_checksum_reports_missing_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            artifact = Path(td) / "sourceos-live.iso"
+            artifact.write_text("sourceos test artifact", encoding="utf-8")
+            listing = "Name,Checksum\nsourceos-live.iso,sha256-not-the-local-file\n"
+            result = module.verify(listing, [str(artifact)], verify_checksums=True)
+            self.assertEqual(result["status"], "fail")
+            self.assertEqual(len(result["missingChecksums"]), 1)
+            self.assertFalse(result["artifacts"][0]["checksumPresent"])
 
 
 if __name__ == "__main__":
