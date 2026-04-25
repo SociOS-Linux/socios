@@ -22,6 +22,7 @@ SourceOS artifact upload lane
   -> SourceOSKatelloHammerUploadReceipt
   -> SourceOSKatelloUploadedArtifactVerificationReceipt
   -> link-sourceos-upload-lifecycle-receipts
+  -> SourceOSLifecycleLinkValidationReceipt
   -> SourceOSUploadLifecycleLinkReceipt
 ```
 
@@ -37,9 +38,24 @@ The lifecycle receipt path is checked and recorded as either:
 - `present`
 - `missing`
 
-This keeps the task useful across local/dev runs where lifecycle publication may happen separately.
+The task also invokes `tools/validate-sourceos-lifecycle-link` to validate lifecycle/content-view evidence.
 
-## Output receipt
+## Channel gates
+
+Lifecycle receipt behavior is channel-aware:
+
+- `dev`: lifecycle receipt may be missing; validator emits warning status
+- `qa`: lifecycle receipt is required
+- `prod`: lifecycle receipt is required
+
+When a lifecycle receipt is present, it must include non-empty `latestContentViewVersions`. Each content-view version entry must include:
+
+- `id`
+- `version`
+
+## Output receipts
+
+Link receipt:
 
 ```text
 .workstation/reports/sourceos/upload-lifecycle-link-receipt.json
@@ -51,16 +67,27 @@ kind:
 SourceOSUploadLifecycleLinkReceipt
 ```
 
+Validation receipt:
+
+```text
+.workstation/reports/sourceos/lifecycle-link-validation-receipt.json
+```
+
+kind:
+
+```text
+SourceOSLifecycleLinkValidationReceipt
+```
+
 ## Non-goals
 
 - does not publish/promote content views
 - does not mutate SourceOS release manifests
 - does not publish to catalog
-- does not claim lifecycle correctness by itself
+- does not claim lifecycle correctness beyond receipt validation
 
 ## Follow-on work
 
-- require lifecycle receipt for qa/prod channels
-- validate content-view version ids from lifecycle receipt
+- validate expected content-view names against BuildRequest / ContentSpec metadata
 - connect link receipt to catalog publication request generation
 - add agentplane validation/run/replay refs for upload lifecycle linkage
