@@ -1,0 +1,104 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: upload-sourceos-artifacts-with-hammer
+spec:
+  description: >-
+    Upload SourceOS artifacts to a Katello repository using Hammer CLI when
+    explicitly enabled. Emits upload and verification receipts.
+  params:
+    - name: hammerRunnerImage
+      type: string
+      default: quay.io/socios/sourceos-hammer-runner:dev
+    - name: artifactBuildReceiptPath
+      type: string
+      default: .workstation/reports/sourceos/artifact-build-receipt.json
+    - name: katelloServerUrl
+      type: string
+      default: https://foreman.example.com
+    - name: organization
+      type: string
+      default: SourceOS
+    - name: product
+      type: string
+      default: SourceOS Files
+    - name: repository
+      type: string
+      default: sourceos-live-iso
+    - name: artifactPaths
+      type: string
+      description: Space-separated artifact paths to upload and verify.
+    - name: enabled
+      type: string
+      default: "false"
+    - name: uploadReceiptPath
+      type: string
+      default: .workstation/reports/sourceos/katello-hammer-upload.json
+    - name: verificationReceiptPath
+      type: string
+      default: .workstation/reports/sourceos/katello-hammer-upload-verification.json
+  workspaces:
+    - name: source
+      description: Workspace containing artifacts and receipts.
+  steps:
+    - name: upload
+      image: $(params.hammerRunnerImage)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+        test -f "$(params.artifactBuildReceiptPath)"
+        mkdir -p "$(dirname "$(params.uploadReceiptPath)")"
+        mkdir -p "$(dirname "$(params.verificationReceiptPath)")"
+        status="skipped"
+        uploaded_json=""
+        verified_json=""
+        if [ "$(params.enabled)" = "true" ]; then
+          for artifact in $(params.artifactPaths); do
+            test -f "$artifact"
+            hammer --server "$(params.katelloServerUrl)" repository upload-content \
+              --organization "$(params.organization)" \
+              --product "$(params.product)" \
+              --name "$(params.repository)" \
+              --path "$artifact"
+            entry="{\"path\":\"$artifact\",\"status\":\"requested\"}"
+            if [ -z "$uploaded_json" ]; then uploaded_json="$entry"; else uploaded_json="$uploaded_json,$entry"; fi
+          done
+          status="uploaded"
+          hammer --server "$(params.katelloServerUrl)" repository info \
+            --organization "$(params.organization)" \
+            --product "$(params.product)" \
+            --name "$(params.repository)" > .workstation/reports/sourceos/katello-hammer-repository-info.txt
+          verified_json="{\"repositoryInfoPath\":\".workstation/reports/sourceos/katello-hammer-repository-info.txt\"}"
+        else
+          for artifact in $(params.artifactPaths); do
+            test -f "$artifact"
+            entry="{\"path\":\"$artifact\",\"status\":\"skipped\"}"
+            if [ -z "$uploaded_json" ]; then uploaded_json="$entry"; else uploaded_json="$uploaded_json,$entry"; fi
+          done
+          verified_json="{\"status\":\"skipped\"}"
+        fi
+        cat > "$(params.uploadReceiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SourceOSKatelloHammerUploadReceipt",
+          "artifactBuildReceiptPath": "$(params.artifactBuildReceiptPath)",
+          "katelloServerUrl": "$(params.katelloServerUrl)",
+          "organization": "$(params.organization)",
+          "product": "$(params.product)",
+          "repository": "$(params.repository)",
+          "enabled": "$(params.enabled)",
+          "status": "${status}",
+          "artifacts": [${uploaded_json}],
+          "receiptPath": "$(params.uploadReceiptPath)"
+        }
+        JSON
+        cat > "$(params.verificationReceiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SourceOSKatelloHammerUploadVerificationReceipt",
+          "uploadReceiptPath": "$(params.uploadReceiptPath)",
+          "verification": ${verified_json},
+          "receiptPath": "$(params.verificationReceiptPath)"
+        }
+        JSON
