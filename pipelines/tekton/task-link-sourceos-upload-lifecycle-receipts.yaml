@@ -7,6 +7,9 @@ spec:
     Link SourceOS Katello upload receipts with lifecycle publication/promote receipts
     into a downstream evidence receipt.
   params:
+    - name: channel
+      type: string
+      default: dev
     - name: uploadReceiptPath
       type: string
       default: .workstation/reports/sourceos/katello-hammer-upload.json
@@ -16,6 +19,9 @@ spec:
     - name: lifecycleReceiptPath
       type: string
       default: /var/lib/socios/sourceos/katello-lifecycle-receipt.json
+    - name: validationReceiptPath
+      type: string
+      default: .workstation/reports/sourceos/lifecycle-link-validation-receipt.json
     - name: receiptPath
       type: string
       default: .workstation/reports/sourceos/upload-lifecycle-link-receipt.json
@@ -24,26 +30,34 @@ spec:
       description: Workspace containing upload receipts and downstream evidence output.
   steps:
     - name: link
-      image: docker.io/library/busybox:latest
+      image: docker.io/library/python:3.12-alpine
       workingDir: $(workspaces.source.path)
       script: |
         #!/bin/sh
         set -eu
         test -f "$(params.uploadReceiptPath)"
         test -f "$(params.uploadVerificationReceiptPath)"
+        test -f ./tools/validate-sourceos-lifecycle-link
         lifecycle_status="present"
         if [ ! -f "$(params.lifecycleReceiptPath)" ]; then
           lifecycle_status="missing"
         fi
         mkdir -p "$(dirname "$(params.receiptPath)")"
+        mkdir -p "$(dirname "$(params.validationReceiptPath)")"
+        python3 ./tools/validate-sourceos-lifecycle-link \
+          --channel "$(params.channel)" \
+          --lifecycle-receipt "$(params.lifecycleReceiptPath)" \
+          --receipt "$(params.validationReceiptPath)"
         cat > "$(params.receiptPath)" <<JSON
         {
           "apiVersion": "socios.sourceos.ai/v0",
           "kind": "SourceOSUploadLifecycleLinkReceipt",
+          "channel": "$(params.channel)",
           "uploadReceiptPath": "$(params.uploadReceiptPath)",
           "uploadVerificationReceiptPath": "$(params.uploadVerificationReceiptPath)",
           "lifecycleReceiptPath": "$(params.lifecycleReceiptPath)",
           "lifecycleReceiptStatus": "${lifecycle_status}",
+          "validationReceiptPath": "$(params.validationReceiptPath)",
           "receiptPath": "$(params.receiptPath)"
         }
         JSON
