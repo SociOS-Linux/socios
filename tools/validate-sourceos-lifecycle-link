@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""Validate SourceOS upload/lifecycle link evidence.
+
+Rules:
+- qa/prod channels require a lifecycle receipt.
+- when a lifecycle receipt is present, it must include non-empty latestContentViewVersions.
+- each latest content-view version entry must include id and version.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+
+def die(message: str) -> None:
+    print(f"[validate-sourceos-lifecycle-link] ERROR: {message}", file=sys.stderr)
+    raise SystemExit(2)
+
+
+def load_json(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        die(f"invalid JSON in {path}: {exc}")
+
+
+def validate(channel: str, lifecycle_receipt: dict[str, Any] | None) -> dict[str, Any]:
+    requires_lifecycle = channel in {"qa", "prod"}
+    if lifecycle_receipt is None:
+        return {
+            "channel": channel,
+            "requiresLifecycle": requires_lifecycle,
+            "lifecyclePresent": False,
+            "latestContentViewVersions": {},
+            "missingVersionEntries": [],
+            "status": "fail" if requires_lifecycle else "warn",
+            "reason": "lifecycle receipt missing",
+        }
+
+    versions = lifecycle_receipt.get("latestContentViewVersions") or {}
+    missing_entries: list[str] = []
+    if not isinstance(versions, dict) or not versions:
+        return {
+            "channel": channel,
+            "requiresLifecycle": requires_lifecycle,
+            "lifecyclePresent": True,
+            "latestContentViewVersions": versions,
+            "missingVersionEntries": ["latestContentViewVersions"],
+            "status": "fail",
+            "reason": "latestContentViewVersions missing or empty",
+        }
+
+    for name, entry in versions.items():
+        if not isinstance(entry, dict) or not entry.get("id") or not entry.get("version"):
+            missing_entries.append(str(name))
+
+    return {
+        "channel": channel,
+        "requiresLifecycle": requires_lifecycle,
+        "lifecyclePresent": True,
+        "latestContentViewVersions": versions,
+        "missingVersionEntries": missing_entries,
+        "status": "pass" if not missing_entries else "fail",
+        "reason": "ok" if not missing_entries else "content-view version entries missing id/version",
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(prog="validate-sourceos-lifecycle-link")
+    parser.add_argument("--channel", required=True, choices=["dev", "qa", "prod"])
+    parser.add_argument("--lifecycle-receipt", required=True)
+    parser.add_argument("--receipt", required=True)
+    args = parser.parse_args()
+
+    lifecycle_path = Path(args.lifecycle_receipt)
+    lifecycle_receipt = load_json(lifecycle_path)
+    result = validate(args.channel, lifecycle_receipt)
+    receipt = {
+        "apiVersion": "socios.sourceos.ai/v0",
+        "kind": "SourceOSLifecycleLinkValidationReceipt",
+        "lifecycleReceiptPath": str(lifecycle_path),
+        **result,
+        "receiptPath": args.receipt,
+    }
+
+    receipt_path = Path(args.receipt)
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return 0 if result["status"] in {"pass", "warn"} else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
