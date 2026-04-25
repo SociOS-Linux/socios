@@ -37,6 +37,9 @@ spec:
     - name: verificationReceiptPath
       type: string
       default: .workstation/reports/sourceos/katello-hammer-upload-verification.json
+    - name: repositoryListingPath
+      type: string
+      default: .workstation/reports/sourceos/katello-hammer-file-list.txt
   workspaces:
     - name: source
       description: Workspace containing artifacts and receipts.
@@ -48,14 +51,17 @@ spec:
         #!/usr/bin/env sh
         set -eu
         test -f "$(params.artifactBuildReceiptPath)"
+        test -f ./tools/verify-katello-uploaded-artifacts
         mkdir -p "$(dirname "$(params.uploadReceiptPath)")"
         mkdir -p "$(dirname "$(params.verificationReceiptPath)")"
+        mkdir -p "$(dirname "$(params.repositoryListingPath)")"
         status="skipped"
         uploaded_json=""
-        verified_json=""
+        artifact_args=""
         if [ "$(params.enabled)" = "true" ]; then
           for artifact in $(params.artifactPaths); do
             test -f "$artifact"
+            artifact_args="$artifact_args --artifact $artifact"
             hammer --server "$(params.katelloServerUrl)" repository upload-content \
               --organization "$(params.organization)" \
               --product "$(params.product)" \
@@ -65,18 +71,29 @@ spec:
             if [ -z "$uploaded_json" ]; then uploaded_json="$entry"; else uploaded_json="$uploaded_json,$entry"; fi
           done
           status="uploaded"
-          hammer --server "$(params.katelloServerUrl)" repository info \
+          hammer --server "$(params.katelloServerUrl)" file list \
             --organization "$(params.organization)" \
             --product "$(params.product)" \
-            --name "$(params.repository)" > .workstation/reports/sourceos/katello-hammer-repository-info.txt
-          verified_json="{\"repositoryInfoPath\":\".workstation/reports/sourceos/katello-hammer-repository-info.txt\"}"
+            --repository "$(params.repository)" > "$(params.repositoryListingPath)"
+          python3 ./tools/verify-katello-uploaded-artifacts \
+            --listing "$(params.repositoryListingPath)" \
+            $artifact_args \
+            --receipt "$(params.verificationReceiptPath)"
         else
           for artifact in $(params.artifactPaths); do
             test -f "$artifact"
             entry="{\"path\":\"$artifact\",\"status\":\"skipped\"}"
             if [ -z "$uploaded_json" ]; then uploaded_json="$entry"; else uploaded_json="$uploaded_json,$entry"; fi
           done
-          verified_json="{\"status\":\"skipped\"}"
+          cat > "$(params.verificationReceiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SourceOSKatelloUploadedArtifactVerificationReceipt",
+          "status": "skipped",
+          "listingPath": "$(params.repositoryListingPath)",
+          "receiptPath": "$(params.verificationReceiptPath)"
+        }
+        JSON
         fi
         cat > "$(params.uploadReceiptPath)" <<JSON
         {
@@ -90,15 +107,8 @@ spec:
           "enabled": "$(params.enabled)",
           "status": "${status}",
           "artifacts": [${uploaded_json}],
+          "repositoryListingPath": "$(params.repositoryListingPath)",
+          "verificationReceiptPath": "$(params.verificationReceiptPath)",
           "receiptPath": "$(params.uploadReceiptPath)"
-        }
-        JSON
-        cat > "$(params.verificationReceiptPath)" <<JSON
-        {
-          "apiVersion": "socios.sourceos.ai/v0",
-          "kind": "SourceOSKatelloHammerUploadVerificationReceipt",
-          "uploadReceiptPath": "$(params.uploadReceiptPath)",
-          "verification": ${verified_json},
-          "receiptPath": "$(params.verificationReceiptPath)"
         }
         JSON
