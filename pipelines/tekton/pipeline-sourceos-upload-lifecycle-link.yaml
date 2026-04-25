@@ -1,0 +1,127 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: sourceos-upload-lifecycle-link
+spec:
+  description: >-
+    Run the gated SourceOS Katello Hammer upload lane and link resulting upload
+    receipts with the Katello lifecycle receipt path.
+  params:
+    - name: contentSpecRef
+      type: string
+    - name: buildRequestRef
+      type: string
+    - name: requestedBy
+      type: string
+    - name: artifactPaths
+      type: string
+    - name: hammerRunnerImage
+      type: string
+      default: quay.io/socios/sourceos-hammer-runner:dev
+    - name: katelloServerUrl
+      type: string
+      default: https://foreman.example.com
+    - name: organization
+      type: string
+      default: SourceOS
+    - name: product
+      type: string
+      default: SourceOS Files
+    - name: repository
+      type: string
+      default: sourceos-live-iso
+    - name: uploadEnabled
+      type: string
+      default: "false"
+    - name: verifyChecksums
+      type: string
+      default: "false"
+    - name: lifecycleReceiptPath
+      type: string
+      default: /var/lib/socios/sourceos/katello-lifecycle-receipt.json
+  workspaces:
+    - name: source
+  tasks:
+    - name: materialize-sourceos-build-request
+      taskRef:
+        name: materialize-sourceos-build-request
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: contentSpecRef
+          value: $(params.contentSpecRef)
+        - name: buildRequestRef
+          value: $(params.buildRequestRef)
+        - name: requestedBy
+          value: $(params.requestedBy)
+        - name: katelloProduct
+          value: $(params.product)
+        - name: katelloRepository
+          value: $(params.repository)
+
+    - name: record-sourceos-artifact-build
+      runAfter: [materialize-sourceos-build-request]
+      taskRef:
+        name: record-sourceos-artifact-build
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: artifactPaths
+          value: $(params.artifactPaths)
+
+    - name: publish-sourceos-artifacts-to-katello
+      runAfter: [record-sourceos-artifact-build]
+      taskRef:
+        name: publish-sourceos-artifacts-to-katello
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: katelloServerUrl
+          value: $(params.katelloServerUrl)
+        - name: organization
+          value: $(params.organization)
+        - name: product
+          value: $(params.product)
+        - name: repository
+          value: $(params.repository)
+        - name: enabled
+          value: $(params.uploadEnabled)
+
+    - name: upload-sourceos-artifacts-with-hammer
+      runAfter: [publish-sourceos-artifacts-to-katello]
+      taskRef:
+        name: upload-sourceos-artifacts-with-hammer
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: hammerRunnerImage
+          value: $(params.hammerRunnerImage)
+        - name: artifactPaths
+          value: $(params.artifactPaths)
+        - name: katelloServerUrl
+          value: $(params.katelloServerUrl)
+        - name: organization
+          value: $(params.organization)
+        - name: product
+          value: $(params.product)
+        - name: repository
+          value: $(params.repository)
+        - name: enabled
+          value: $(params.uploadEnabled)
+        - name: verifyChecksums
+          value: $(params.verifyChecksums)
+
+    - name: link-sourceos-upload-lifecycle-receipts
+      runAfter: [upload-sourceos-artifacts-with-hammer]
+      taskRef:
+        name: link-sourceos-upload-lifecycle-receipts
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: lifecycleReceiptPath
+          value: $(params.lifecycleReceiptPath)
