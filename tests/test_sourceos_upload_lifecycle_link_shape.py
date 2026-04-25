@@ -16,16 +16,20 @@ class SourceOSUploadLifecycleLinkShapeTests(unittest.TestCase):
         missing = [needle for needle in needles if needle not in text]
         self.assertEqual(missing, [], f"missing expected snippets: {missing}")
 
-    def test_upload_lifecycle_link_task_emits_receipt(self) -> None:
+    def test_upload_lifecycle_link_task_emits_receipts_and_validation(self) -> None:
         text = read("pipelines/tekton/task-link-sourceos-upload-lifecycle-receipts.yaml")
         self.assertContainsAll(
             text,
             [
                 "SourceOSUploadLifecycleLinkReceipt",
+                "SourceOSLifecycleLinkValidationReceipt",
                 "uploadReceiptPath",
                 "uploadVerificationReceiptPath",
                 "lifecycleReceiptPath",
                 "lifecycleReceiptStatus",
+                "validationReceiptPath",
+                "validate-sourceos-lifecycle-link",
+                "channel",
             ],
         )
 
@@ -39,10 +43,11 @@ class SourceOSUploadLifecycleLinkShapeTests(unittest.TestCase):
                 "link-sourceos-upload-lifecycle-receipts",
                 "runAfter: [upload-sourceos-artifacts-with-hammer]",
                 "verifyChecksums",
+                "channel",
             ],
         )
 
-    def test_upload_lifecycle_doc_preserves_boundaries(self) -> None:
+    def test_upload_lifecycle_doc_preserves_boundaries_and_channel_gates(self) -> None:
         text = read("docs/sourceos/upload-lifecycle-link-v0.md")
         self.assertContainsAll(
             text,
@@ -51,6 +56,10 @@ class SourceOSUploadLifecycleLinkShapeTests(unittest.TestCase):
                 "does not mutate SourceOS release manifests",
                 "does not publish to catalog",
                 "SourceOSUploadLifecycleLinkReceipt",
+                "SourceOSLifecycleLinkValidationReceipt",
+                "qa",
+                "prod",
+                "latestContentViewVersions",
             ],
         )
 
