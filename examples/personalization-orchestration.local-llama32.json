@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "v0.1",
+  "kind": "PersonalizationOrchestration",
+  "orchestrationId": "urn:socios:personalization-orchestration:demo-user-local-llama32",
+  "governanceContractRef": "urn:socioprophet:personal-tuning-contract:demo-user-local-llama32",
+  "signedIntentRef": "urn:socios:intent:demo-user-local-model-personalization",
+  "proofOfLifeRef": "urn:socios:proof-of-life:demo-user-local-device",
+  "subject": {
+    "userRef": "urn:socioprophet:user:demo-user",
+    "deviceRef": "urn:srcos:device:demo-laptop",
+    "workspaceRef": "urn:socioprophet:workspace:demo-workspace",
+    "tenantRef": "urn:socioprophet:tenant:demo-tenant"
+  },
+  "workflow": {
+    "mode": "dry-run",
+    "steps": [
+      "verify-signed-intent",
+      "verify-proof-of-life",
+      "verify-governance-contract",
+      "prepare-approved-sources",
+      "emit-dataset-lineage",
+      "run-evaluation-plan",
+      "write-ledger-receipts"
+    ],
+    "agentPlaneRequired": true,
+    "workstationContractRef": "urn:socios:workstation-contract:personalization-local-dry-run",
+    "jobRef": null
+  },
+  "inputs": {
+    "allowedSourceRefs": [
+      "sourceos-office://demo-workspace/output",
+      "memory-mesh://demo-user/approved-context-packs",
+      "prophet-workspace://demo-workspace/user-approved-artifacts"
+    ],
+    "deniedSourceClasses": [
+      "whole-home",
+      "browser-profiles",
+      "raw-app-stores",
+      "security-material-directories",
+      "cloud-account-material",
+      "token-stores"
+    ],
+    "baseModelRef": "urn:srcos:model-profile:local-llama32-1b",
+    "outputArtifactRef": "urn:socioprophet:model-adapter:demo-user-local-llama32-lora"
+  },
+  "policy": {
+    "offByDefault": true,
+    "requiresSignedIntent": true,
+    "requiresProofOfLife": true,
+    "localOnlyDefault": true,
+    "promotionRequiresLedgerApproval": true,
+    "allowExternalCompute": false,
+    "allowRawAppStores": false,
+    "allowWholeHomeIngestion": false
+  },
+  "evidence": {
+    "emitDatasetLineage": true,
+    "emitPersonalizationReceipt": true,
+    "emitEvalReceipt": true,
+    "emitPromotionOrRevocationReceipt": true,
+    "ledgerRef": "SocioProphet/model-governance-ledger"
+  }
+}
