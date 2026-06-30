@@ -167,6 +167,12 @@
     - item.stdout_lines is defined
     - item.stdout_lines | length > 1
 
+- name: Evaluate evidence gate before promotion (fail-closed)
+  ansible.builtin.include_tasks: evidence_gate.yml
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_katello_promotion_evidence_gate_enabled
+
 - name: Promote SourceOS content views through lifecycle environments
   ansible.builtin.command:
     argv:
@@ -186,7 +192,9 @@
       - "{{ item.1.name }}"
   loop: "{{ socios_katello_content_views | product(socios_katello_lifecycle_environments) | list }}"
   register: socios_content_view_promote_results
-  when: not socios_katello_lifecycle_dry_run
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - (not socios_katello_promotion_evidence_gate_enabled) or (socios_katello_promotion_admitted | default(false) | bool)
 
 - name: Check SourceOS activation keys
   ansible.builtin.command:
@@ -311,6 +319,14 @@
         'activationKeys': socios_katello_activation_keys,
         'latestContentViewVersions': (socios_katello_latest_content_view_versions | default({})),
         'contentViewVersionLists': (socios_content_view_version_lists.results | default([])),
+        'promotionAdmission': {
+          'gateEnabled': socios_katello_promotion_evidence_gate_enabled,
+          'requireAdmission': socios_katello_promotion_require_admission,
+          'admitted': (socios_katello_promotion_admitted | default(false)),
+          'reason': (socios_katello_promotion_admission_reason | default('gate-disabled')),
+          'evidenceBundlePath': socios_katello_release_evidence_bundle_path,
+          'trustChainHook': (socios_katello_trust_chain_admission_command | default([]))
+        },
         'contentViewPromotions': (socios_content_view_promote_results.results | default([])),
         'activationKeyOverrides': (socios_activation_key_override_results.results | default([])),
         'activationKeyProductContentVerifications': (socios_activation_key_product_content_verifications.results | default([]))
@@ -322,3 +338,10 @@
   when:
     - not socios_katello_lifecycle_dry_run
     - socios_katello_lifecycle_receipt_signing_enabled
+
+- name: Verify SourceOS Katello lifecycle receipt signature when enabled
+  ansible.builtin.include_tasks: verify_lifecycle_receipt.yml
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_katello_lifecycle_receipt_signing_enabled
+    - socios_katello_lifecycle_receipt_verify_after_sign | default(false) | bool
