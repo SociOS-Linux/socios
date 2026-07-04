@@ -1,0 +1,264 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: sourceos-build-smoke-runner-image
+spec:
+  description: >-
+    Check task image refs, resolve task image digests, verify base image, build,
+    optionally publish, generate SBOM, scan, emit provenance, bundle evidence,
+    optionally attest, optionally promote, and optionally publish the evidence receipt
+    for the SourceOS smoke-runner image.
+  params:
+    - name: imageRef
+      type: string
+      default: quay.io/socios/sourceos-smoke-runner:dev
+    - name: targetImageRef
+      type: string
+      default: quay.io/socios/sourceos-smoke-runner:release-candidate
+    - name: baseImage
+      type: string
+      default: registry.fedoraproject.org/fedora-minimal@sha256:REPLACE_WITH_VERIFIED_DIGEST
+    - name: requirePinnedBase
+      type: string
+      default: "true"
+    - name: requirePinnedTaskImages
+      type: string
+      default: "false"
+    - name: push
+      type: string
+      default: "false"
+    - name: sign
+      type: string
+      default: "false"
+    - name: attestEvidence
+      type: string
+      default: "false"
+    - name: publishEvidence
+      type: string
+      default: "false"
+    - name: builderImage
+      type: string
+      default: quay.io/buildah/stable:latest
+    - name: sbomImage
+      type: string
+      default: anchore/syft:latest
+    - name: scannerImage
+      type: string
+      default: anchore/grype:latest
+    - name: signingImage
+      type: string
+      default: gcr.io/projectsigstore/cosign:latest
+    - name: publisherImage
+      type: string
+      default: quay.io/skopeo/stable:latest
+    - name: inspectorImage
+      type: string
+      default: quay.io/skopeo/stable:latest
+    - name: utilityImage
+      type: string
+      default: docker.io/library/busybox:latest
+    - name: failOnSeverity
+      type: string
+      default: high
+    - name: targetCatalogRef
+      type: string
+      default: sourceos://catalog/images/sourceos-smoke-runner
+  workspaces:
+    - name: source
+  tasks:
+    - name: check-smoke-runner-task-images
+      taskRef:
+        name: check-smoke-runner-task-images
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: requirePinnedTaskImages
+          value: $(params.requirePinnedTaskImages)
+        - name: builderImage
+          value: $(params.builderImage)
+        - name: sbomImage
+          value: $(params.sbomImage)
+        - name: scannerImage
+          value: $(params.scannerImage)
+        - name: attestImage
+          value: $(params.signingImage)
+        - name: publisherImage
+          value: $(params.publisherImage)
+        - name: inspectorImage
+          value: $(params.inspectorImage)
+        - name: utilityImage
+          value: $(params.utilityImage)
+
+    - name: resolve-smoke-runner-task-image-digests
+      runAfter: [check-smoke-runner-task-images]
+      taskRef:
+        name: resolve-smoke-runner-task-image-digests
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: resolverImage
+          value: $(params.inspectorImage)
+        - name: builderImage
+          value: $(params.builderImage)
+        - name: sbomImage
+          value: $(params.sbomImage)
+        - name: scannerImage
+          value: $(params.scannerImage)
+        - name: attestImage
+          value: $(params.signingImage)
+        - name: publisherImage
+          value: $(params.publisherImage)
+        - name: inspectorImage
+          value: $(params.inspectorImage)
+        - name: utilityImage
+          value: $(params.utilityImage)
+
+    - name: verify-smoke-runner-base-image
+      runAfter: [resolve-smoke-runner-task-image-digests]
+      taskRef:
+        name: verify-smoke-runner-base-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: baseImage
+          value: $(params.baseImage)
+        - name: requirePinnedBase
+          value: $(params.requirePinnedBase)
+        - name: inspectorImage
+          value: $(params.inspectorImage)
+
+    - name: build-smoke-runner-image
+      runAfter: [verify-smoke-runner-base-image]
+      taskRef:
+        name: build-smoke-runner-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: baseImage
+          value: $(params.baseImage)
+        - name: requirePinnedBase
+          value: $(params.requirePinnedBase)
+        - name: push
+          value: $(params.push)
+        - name: builderImage
+          value: $(params.builderImage)
+
+    - name: sbom-smoke-runner-image
+      runAfter: [build-smoke-runner-image]
+      taskRef:
+        name: sbom-smoke-runner-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: sbomImage
+          value: $(params.sbomImage)
+
+    - name: scan-smoke-runner-image
+      runAfter: [sbom-smoke-runner-image]
+      taskRef:
+        name: scan-smoke-runner-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: scannerImage
+          value: $(params.scannerImage)
+        - name: failOnSeverity
+          value: $(params.failOnSeverity)
+
+    - name: provenance-smoke-runner-image
+      runAfter: [scan-smoke-runner-image]
+      taskRef:
+        name: provenance-smoke-runner-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: baseImage
+          value: $(params.baseImage)
+
+    - name: bundle-smoke-runner-image-evidence
+      runAfter: [provenance-smoke-runner-image]
+      taskRef:
+        name: bundle-smoke-runner-image-evidence
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: baseImage
+          value: $(params.baseImage)
+
+    - name: attest-smoke-runner-image-evidence
+      runAfter: [bundle-smoke-runner-image-evidence]
+      taskRef:
+        name: attest-smoke-runner-image-evidence
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: enabled
+          value: $(params.attestEvidence)
+        - name: attestationImage
+          value: $(params.signingImage)
+
+    - name: sign-smoke-runner-image
+      runAfter: [attest-smoke-runner-image-evidence]
+      taskRef:
+        name: sign-smoke-runner-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: enabled
+          value: $(params.sign)
+        - name: signingImage
+          value: $(params.signingImage)
+
+    - name: promote-smoke-runner-image
+      runAfter: [sign-smoke-runner-image]
+      taskRef:
+        name: promote-smoke-runner-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: sourceImageRef
+          value: $(params.imageRef)
+        - name: targetImageRef
+          value: $(params.targetImageRef)
+        - name: enabled
+          value: $(params.promote)
+        - name: publisherImage
+          value: $(params.publisherImage)
+
+    - name: publish-smoke-runner-image-evidence
+      runAfter: [promote-smoke-runner-image]
+      taskRef:
+        name: publish-smoke-runner-image-evidence
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: enabled
+          value: $(params.publishEvidence)
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: targetCatalogRef
+          value: $(params.targetCatalogRef)

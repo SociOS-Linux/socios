@@ -1,0 +1,44 @@
+{
+  "id": "urn:srcos:skill:fedora-atomic.rpm-ostree-layering",
+  "type": "SkillManifest",
+  "specVersion": "2.0.0",
+  "name": "fedora-atomic.rpm-ostree-layering",
+  "version": "0.1.0",
+  "entryDoc": "skills/fedora-atomic/rpm-ostree-layering/SKILL.md",
+  "description": "Guardrails and workflow for rpm-ostree host package layering (sparingly) including rollback.",
+  "activationRules": {
+    "commands": [
+      "rpm-ostree.install",
+      "rpm-ostree.layer",
+      "fedora.atomic.layering"
+    ],
+    "filePatterns": [],
+    "intentTags": [
+      "os.bootstrap",
+      "fedora-atomic",
+      "rpm-ostree"
+    ]
+  },
+  "requires": {
+    "binaries": [
+      "rpm-ostree"
+    ],
+    "anyBins": [],
+    "tools": []
+  },
+  "policyBindings": [
+    "urn:srcos:policy:socios.optin.signed-intent",
+    "urn:srcos:policy:host.mutation.requires.review"
+  ],
+  "artifactOutputs": [
+    "artifact:stdout",
+    "artifact:receipt"
+  ],
+  "reviewMode": true,
+  "allowShellExecution": false,
+  "protectedPaths": [
+    "/etc",
+    "/usr",
+    "/boot"
+  ]
+}

@@ -1,0 +1,37 @@
+apiVersion: socios.sourceos.ai/v0
+kind: SourceOSBuildRequestPolicy
+metadata:
+  name: sourceos-build-request-intake
+spec:
+  authority:
+    artifactTruthRepo: SourceOS-Linux/SourceOS
+    schemaTruthRepo: SourceOS-Linux/sourceos-spec
+    automationRepo: SociOS-Linux/socios
+    executionEvidenceRepo: SocioProphet/agentplane
+  requiredFields:
+    - contentSpecRef
+    - buildRequestRef
+    - channel
+    - architecture
+    - requestedBy
+  optionalFields:
+    - overlayRefs
+    - enrollmentProfileRef
+    - agentplaneBundleRef
+    - localExecutionProtocolRef
+    - remoteExecutionProtocolRef
+    - katelloProduct
+    - katelloRepository
+  allowedChannels:
+    - dev
+    - qa
+    - prod
+  allowedArchitectures:
+    - x86_64
+    - aarch64
+  outputs:
+    receiptPath: .workstation/reports/sourceos/build-request-materialization.json
+  notes:
+    - This policy validates SourceOS build request intake for socios automation.
+    - It does not make socios the source of artifact truth.
+    - SourceOS release manifests remain owned by the artifact truth repo.

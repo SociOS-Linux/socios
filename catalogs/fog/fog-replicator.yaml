@@ -9,6 +9,7 @@ spec:
     ref: ghcr.io/socioprophet/fog-replicator
   version: pending-pin
   digest: ""
+  placeholder: true
   notes:
     - Placeholder only. This entry must fail admission until a real digest pin is supplied.
-    - Intended to replicate topic state across enrolled nodes.
+    - Intended to replicate Hypercore topic state across enrolled nodes.

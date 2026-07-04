@@ -1,0 +1,56 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: dynamic-validate-live-iso
+spec:
+  description: >-
+    Run the Agent-S dynamic-validation scenario set against a SourceOS image and
+    emit a DynamicValidationEvidenceBundle for the Katello evidence gate. The
+    real Agent-S + disposable-guest run is HOST-GATED (Linux + /dev/kvm + qemu +
+    Agent-S). Without a runner this auto-falls back to dry-run and emits a
+    DRY_RUN bundle the fail-closed gate correctly denies.
+  params:
+    - name: runnerImage
+      type: string
+      description: Controller image with Python, qemu, and Agent-S (gui_agents).
+      default: quay.io/socios/sourceos-dynamic-validation-runner:latest
+    - name: scenariosPath
+      type: string
+      description: Path to the DynamicValidationScenarioSet to run.
+      default: tools/dynamic-validation/scenario-set.example.yaml
+    - name: policyPath
+      type: string
+      description: Path to the host-action policy.
+      default: policies/dynamic-validation-host-actions.yaml
+    - name: outDir
+      type: string
+      description: Directory for evidence artifacts and the bundle.
+      default: .workstation/state/dynval
+    - name: dryRun
+      type: string
+      description: Force dry-run ("true") even on a capable host.
+      default: "false"
+  workspaces:
+    - name: source
+      description: Workspace containing the built image and checked-out socios repo.
+  steps:
+    - name: dynamic-validate
+      image: $(params.runnerImage)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        echo "[dynamic-validate-live-iso] scenarios: $(params.scenariosPath)"
+        test -f ./tools/dynamic-validation/run.py
+        test -f "$(params.scenariosPath)"
+        DRY=""
+        if [ "$(params.dryRun)" = "true" ]; then DRY="--dry-run"; fi
+        # validate first (fails closed on a bad set or out-of-policy host_command)
+        python3 ./tools/dynamic-validation/run.py validate \
+          --scenarios "$(params.scenariosPath)" \
+          --policy "$(params.policyPath)"
+        python3 ./tools/dynamic-validation/run.py run \
+          --scenarios "$(params.scenariosPath)" \
+          --policy "$(params.policyPath)" \
+          --out-dir "$(params.outDir)" \
+          --emit-evidence "$(params.outDir)/evidence-bundle.json" $DRY

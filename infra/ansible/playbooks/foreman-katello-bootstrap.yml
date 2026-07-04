@@ -1,0 +1,7 @@
+---
+- name: Bootstrap Foreman + Katello management host
+  hosts: foreman_katello
+  become: true
+  gather_facts: true
+  roles:
+    - role: foreman_katello_install

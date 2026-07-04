@@ -9,6 +9,7 @@ spec:
     ref: ghcr.io/socioprophet/fog-worker
   version: pending-pin
   digest: ""
+  placeholder: true
   notes:
     - Placeholder only. This entry must fail admission until a real digest pin is supplied.
     - Intended to execute FogCompute work orders and emit usage receipts.

@@ -9,5 +9,6 @@ spec:
     ref: topolvm/topolvm
   version: pending-pin
   digest: ""
+  placeholder: true
   notes:
     - Placeholder only. This entry must fail admission until a real digest pin is supplied.

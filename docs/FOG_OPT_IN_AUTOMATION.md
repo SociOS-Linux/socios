@@ -4,7 +4,7 @@ This document captures the intended **opt-in automation and catalog role** of `s
 
 The Fog layer must function without `socios`.
 
-`SociOS-Linux/socios` is the optional commons / automation plane that can distribute, validate, catalog, and update fog-related artifacts once a node is explicitly enrolled.
+`SociOS-Linux/socios` is the **optional commons / automation plane** that can distribute, validate, catalog, and update fog-related artifacts once a node is explicitly enrolled.
 
 ## Non-negotiable posture
 
@@ -22,7 +22,9 @@ This repo is the right place to carry or publish signed catalogs for:
 - local storage / CSI chart pins
 - ignition profile references
 - installer profile references
-- conformance policy pack references
+- conformance policy packs
+
+The current placeholder catalog entries are **intentionally non-admissible** until replaced with real digest pins.
 
 ### 2. Opt-in update automation
 
@@ -55,7 +57,7 @@ Those remain upstream in SourceOS, sourceos-spec, and the related runtime/confor
 ## Expected follow-up
 
 Future PRs here should add:
-1. real digest-pinned fog catalogs (replacing the non-admissible placeholders)
+1. real digest-pinned fog catalogs replacing the non-admissible placeholders
 2. richer policy packs controlling admissible fog updates
 3. rollout receipts / evidence patterns for fog artifacts
 4. explicit opt-in enrollment docs for fog nodes

@@ -1,0 +1,7 @@
+---
+- name: Configure SourceOS Smart Proxy lifecycle content sync
+  hosts: sourceos_smart_proxy
+  become: true
+  gather_facts: true
+  roles:
+    - role: smart_proxy_content_sync_sourceos

@@ -1,0 +1,7 @@
+---
+- name: Seed SourceOS products and repositories in Katello
+  hosts: foreman_katello
+  become: true
+  gather_facts: true
+  roles:
+    - role: katello_seed_sourceos

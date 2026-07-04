@@ -1,0 +1,42 @@
+apiVersion: socios.sourceos.ai/v0
+kind: TaskImagePolicy
+metadata:
+  name: sourceos-smoke-runner-image-pipeline
+spec:
+  requireDigestForRelease: true
+  referenceCheckReceiptPath: .workstation/reports/images/sourceos-smoke-runner-task-images.json
+  digestResolutionReceiptPath: .workstation/reports/images/sourceos-smoke-runner-task-image-digests.json
+  taskImages:
+    - name: builderImage
+      defaultRef: quay.io/buildah/stable:latest
+      requiredTool: buildah
+      digest: REPLACE_WITH_VERIFIED_DIGEST
+    - name: sbomImage
+      defaultRef: anchore/syft:latest
+      requiredTool: syft
+      digest: REPLACE_WITH_VERIFIED_DIGEST
+    - name: scannerImage
+      defaultRef: anchore/grype:latest
+      requiredTool: grype
+      digest: REPLACE_WITH_VERIFIED_DIGEST
+    - name: signingImage
+      defaultRef: gcr.io/projectsigstore/cosign:latest
+      requiredTool: cosign
+      digest: REPLACE_WITH_VERIFIED_DIGEST
+    - name: publisherImage
+      defaultRef: quay.io/skopeo/stable:latest
+      requiredTool: skopeo
+      digest: REPLACE_WITH_VERIFIED_DIGEST
+    - name: inspectorImage
+      defaultRef: quay.io/skopeo/stable:latest
+      requiredTool: skopeo
+      digest: REPLACE_WITH_VERIFIED_DIGEST
+    - name: shellUtilityImage
+      defaultRef: docker.io/library/busybox:latest
+      requiredTool: sh
+      digest: REPLACE_WITH_VERIFIED_DIGEST
+  notes:
+    - This policy records task-image digest requirements for release-grade pipelines.
+    - Defaults remain tag-based for scaffolding until verified digests are supplied.
+    - The pipeline now emits both a reference-shape receipt and a digest-resolution receipt.
+    - Set requirePinnedTaskImages=true in the pipeline to enforce digest-pinned task image refs.

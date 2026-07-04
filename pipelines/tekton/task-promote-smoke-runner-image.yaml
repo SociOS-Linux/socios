@@ -1,0 +1,91 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: promote-smoke-runner-image
+spec:
+  description: >-
+    Manually promote the SourceOS smoke-runner image after required evidence exists.
+  params:
+    - name: publisherImage
+      type: string
+      description: Image containing skopeo.
+      default: quay.io/skopeo/stable:latest
+    - name: sourceImageRef
+      type: string
+      default: quay.io/socios/sourceos-smoke-runner:dev
+    - name: targetImageRef
+      type: string
+      default: quay.io/socios/sourceos-smoke-runner:release-candidate
+    - name: enabled
+      type: string
+      default: "false"
+    - name: buildReceiptPath
+      type: string
+      default: .workstation/reports/images/sourceos-smoke-runner-build.json
+    - name: sbomPath
+      type: string
+      default: .workstation/reports/sbom/sourceos-smoke-runner.spdx.json
+    - name: scanPath
+      type: string
+      default: .workstation/reports/scans/sourceos-smoke-runner-grype.json
+    - name: provenancePath
+      type: string
+      default: .workstation/reports/provenance/sourceos-smoke-runner-provenance.json
+    - name: evidenceBundlePath
+      type: string
+      default: .workstation/reports/evidence/sourceos-smoke-runner-evidence.json
+    - name: receiptPath
+      type: string
+      default: .workstation/reports/promotion/sourceos-smoke-runner-promotion.json
+  workspaces:
+    - name: source
+      description: Workspace containing evidence reports.
+  steps:
+    - name: promote
+      image: $(params.publisherImage)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+        mkdir -p "$(dirname "$(params.receiptPath)")"
+        test -f "$(params.buildReceiptPath)"
+        test -f "$(params.sbomPath)"
+        test -f "$(params.scanPath)"
+        test -f "$(params.provenancePath)"
+        test -f "$(params.evidenceBundlePath)"
+
+        if [ "$(params.enabled)" != "true" ]; then
+          cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SmokeRunnerImagePromotionReceipt",
+          "sourceImageRef": "$(params.sourceImageRef)",
+          "targetImageRef": "$(params.targetImageRef)",
+          "enabled": false,
+          "status": "skipped",
+          "buildReceiptPath": "$(params.buildReceiptPath)",
+          "sbomPath": "$(params.sbomPath)",
+          "scanPath": "$(params.scanPath)",
+          "provenancePath": "$(params.provenancePath)",
+          "evidenceBundlePath": "$(params.evidenceBundlePath)"
+        }
+        JSON
+          exit 0
+        fi
+
+        skopeo copy "docker://$(params.sourceImageRef)" "docker://$(params.targetImageRef)"
+        cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SmokeRunnerImagePromotionReceipt",
+          "sourceImageRef": "$(params.sourceImageRef)",
+          "targetImageRef": "$(params.targetImageRef)",
+          "enabled": true,
+          "status": "promoted",
+          "buildReceiptPath": "$(params.buildReceiptPath)",
+          "sbomPath": "$(params.sbomPath)",
+          "scanPath": "$(params.scanPath)",
+          "provenancePath": "$(params.provenancePath)",
+          "evidenceBundlePath": "$(params.evidenceBundlePath)"
+        }
+        JSON

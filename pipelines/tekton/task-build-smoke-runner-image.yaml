@@ -1,0 +1,81 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: build-smoke-runner-image
+spec:
+  description: >-
+    Build the SourceOS smoke-runner image from images/sourceos-smoke-runner/Containerfile
+    with explicit base-image input and receipt emission.
+  params:
+    - name: builderImage
+      type: string
+      description: Image containing buildah.
+      default: quay.io/buildah/stable:latest
+    - name: imageRef
+      type: string
+      description: Target image ref to build, e.g. quay.io/socios/sourceos-smoke-runner:dev.
+      default: quay.io/socios/sourceos-smoke-runner:dev
+    - name: baseImage
+      type: string
+      description: Base image ref. Use name@sha256:digest for release-grade builds.
+      default: registry.fedoraproject.org/fedora-minimal:latest
+    - name: requirePinnedBase
+      type: string
+      description: Fail if baseImage is not digest-pinned.
+      default: "true"
+    - name: contextDir
+      type: string
+      description: Build context directory.
+      default: .
+    - name: containerfile
+      type: string
+      description: Containerfile path relative to contextDir.
+      default: images/sourceos-smoke-runner/Containerfile
+    - name: receiptPath
+      type: string
+      description: Output path for image build receipt.
+      default: .workstation/reports/images/sourceos-smoke-runner-build.json
+    - name: push
+      type: string
+      description: Whether to push the image after build.
+      default: "false"
+  workspaces:
+    - name: source
+      description: Checked-out socios repository.
+  steps:
+    - name: build
+      image: $(params.builderImage)
+      workingDir: $(workspaces.source.path)/$(params.contextDir)
+      securityContext:
+        privileged: true
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        echo "[build-smoke-runner-image] build $(params.imageRef)"
+
+        if [[ "$(params.requirePinnedBase)" == "true" && "$(params.baseImage)" != *@sha256:* ]]; then
+          echo "[build-smoke-runner-image] baseImage must be digest-pinned when requirePinnedBase=true" >&2
+          exit 2
+        fi
+
+        mkdir -p "$(dirname "$(params.receiptPath)")"
+        buildah bud \
+          --build-arg "BASE_IMAGE=$(params.baseImage)" \
+          -f "$(params.containerfile)" \
+          -t "$(params.imageRef)" .
+
+        if [[ "$(params.push)" == "true" ]]; then
+          buildah push "$(params.imageRef)"
+        fi
+
+        cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SmokeRunnerImageBuildReceipt",
+          "imageRef": "$(params.imageRef)",
+          "baseImage": "$(params.baseImage)",
+          "requirePinnedBase": "$(params.requirePinnedBase)",
+          "containerfile": "$(params.containerfile)",
+          "pushed": "$(params.push)"
+        }
+        JSON

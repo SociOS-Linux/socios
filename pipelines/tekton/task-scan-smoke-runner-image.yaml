@@ -1,0 +1,36 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: scan-smoke-runner-image
+spec:
+  description: >-
+    Generate a scanner report for the SourceOS smoke-runner image.
+  params:
+    - name: scannerImage
+      type: string
+      description: Image containing grype.
+      default: anchore/grype:latest
+    - name: imageRef
+      type: string
+      description: Image ref to inspect.
+      default: quay.io/socios/sourceos-smoke-runner:dev
+    - name: scanPath
+      type: string
+      description: Scanner report output path.
+      default: .workstation/reports/scans/sourceos-smoke-runner-grype.json
+    - name: failOnSeverity
+      type: string
+      description: Scanner failure threshold.
+      default: high
+  workspaces:
+    - name: source
+      description: Workspace for report output.
+  steps:
+    - name: scan
+      image: $(params.scannerImage)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+        mkdir -p "$(dirname "$(params.scanPath)")"
+        grype "$(params.imageRef)" -o json --fail-on "$(params.failOnSeverity)" > "$(params.scanPath)"

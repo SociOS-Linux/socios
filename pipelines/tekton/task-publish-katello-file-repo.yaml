@@ -1,0 +1,58 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: publish-katello-file-repo
+spec:
+  description: >-
+    Scaffold task for uploading a built artifact into a Katello custom file repository
+    using hammer CLI semantics.
+  params:
+    - name: cliImage
+      type: string
+      description: Image containing hammer CLI and any required CA material.
+      default: quay.io/socios/katello-cli:latest
+    - name: serverUrl
+      type: string
+      description: Foreman/Katello base URL.
+    - name: organization
+      type: string
+      description: Katello organization name.
+    - name: product
+      type: string
+      description: Katello product name.
+    - name: repository
+      type: string
+      description: Katello repository name.
+    - name: artifactPath
+      type: string
+      description: Path to the artifact to upload from the workspace.
+  workspaces:
+    - name: source
+      description: Workspace containing the artifact to publish.
+  steps:
+    - name: upload
+      image: $(params.cliImage)
+      workingDir: $(workspaces.source.path)
+      env:
+        - name: KATELLO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: katello-cli
+              key: password
+        - name: KATELLO_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: katello-cli
+              key: username
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        hammer --server "$(params.serverUrl)" \
+          --username "$KATELLO_USERNAME" \
+          --password "$KATELLO_PASSWORD" \
+          repository upload-content \
+          --organization "$(params.organization)" \
+          --product "$(params.product)" \
+          --name "$(params.repository)" \
+          --path "$(params.artifactPath)"

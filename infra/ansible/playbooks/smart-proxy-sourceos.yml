@@ -1,0 +1,7 @@
+---
+- name: Bootstrap SourceOS Smart Proxy / site edge scaffold
+  hosts: sourceos_smart_proxy
+  become: true
+  gather_facts: true
+  roles:
+    - role: smart_proxy_sourceos

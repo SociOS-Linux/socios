@@ -1,6 +1,6 @@
 # Fog catalogs
 
-This directory is the home for **opt-in** fog-related catalogs once a node is explicitly enrolled into `socios`.
+This directory is the placeholder home for **opt-in**, signed fog-related catalogs once a node is explicitly enrolled into `socios`.
 
 ## Intended catalog items
 
@@ -21,4 +21,4 @@ Placeholder entries may exist for design review, but they must fail the admissib
 
 ## Boundary
 
-These catalogs are optional and must never become a hidden dependency for local substrate correctness.
+These catalogs are **optional** and must never become a hidden dependency for local substrate correctness.

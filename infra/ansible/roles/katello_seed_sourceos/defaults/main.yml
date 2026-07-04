@@ -1,0 +1,17 @@
+---
+socios_katello_seed_dry_run: true
+socios_katello_server_url: https://foreman.example.com
+socios_katello_organization: SourceOS
+socios_katello_file_product: SourceOS Files
+socios_katello_file_repositories:
+  - name: sourceos-live-iso
+    content_type: file
+  - name: sourceos-disk-images
+    content_type: file
+  - name: sourceos-config-bundles
+    content_type: file
+socios_katello_ostree_product: SourceOS OSTree
+socios_katello_ostree_repositories:
+  - name: sourceos-ostree
+    content_type: ostree
+    url: null

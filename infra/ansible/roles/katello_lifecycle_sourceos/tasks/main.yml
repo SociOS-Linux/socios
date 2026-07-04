@@ -1,0 +1,347 @@
+---
+- name: Explain dry-run posture for Katello lifecycle seeding
+  ansible.builtin.debug:
+    msg:
+      - "Dry-run mode enabled; lifecycle/content-view/activation-key commands are not being executed."
+      - "Set socios_katello_lifecycle_dry_run=false after hammer auth and repository seeding are in place."
+  when: socios_katello_lifecycle_dry_run
+
+- name: Check SourceOS lifecycle environments
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - lifecycle-environment
+      - list
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --search
+      - "name = {{ item.name }}"
+      - --fields
+      - Id
+      - --csv
+  loop: "{{ socios_katello_lifecycle_environments }}"
+  register: socios_lifecycle_env_checks
+  changed_when: false
+  failed_when: false
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Create SourceOS lifecycle environments when missing
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - lifecycle-environment
+      - create
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.name }}"
+      - --prior
+      - "{{ item.prior }}"
+  loop: "{{ socios_katello_lifecycle_environments }}"
+  loop_control:
+    extended: true
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_lifecycle_env_checks.results[ansible_loop.index0].stdout_lines | length <= 1
+
+- name: Check SourceOS content views
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - content-view
+      - list
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --search
+      - "name = {{ item.name }}"
+      - --fields
+      - Id
+      - --csv
+  loop: "{{ socios_katello_content_views }}"
+  register: socios_content_view_checks
+  changed_when: false
+  failed_when: false
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Create SourceOS content views when missing
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - content-view
+      - create
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.name }}"
+      - --description
+      - "{{ item.description | default('SourceOS content view') }}"
+  loop: "{{ socios_katello_content_views }}"
+  loop_control:
+    extended: true
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_content_view_checks.results[ansible_loop.index0].stdout_lines | length <= 1
+
+- name: Add repositories to SourceOS content views
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - content-view
+      - add-repository
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.0.name }}"
+      - --product
+      - "{{ item.1.product }}"
+      - --repository
+      - "{{ item.1.name }}"
+  loop: "{{ socios_katello_content_views | subelements('repositories') }}"
+  register: socios_content_view_repo_adds
+  changed_when: "'already' not in ((socios_content_view_repo_adds.stderr | default('')) | lower)"
+  failed_when: false
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Publish SourceOS content views
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - content-view
+      - publish
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.name }}"
+      - --description
+      - "Initial SourceOS content view publication"
+  loop: "{{ socios_katello_content_views }}"
+  register: socios_content_view_publish_results
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Lookup latest SourceOS content-view versions after publish
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - content-view
+      - version
+      - list
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --content-view
+      - "{{ item.name }}"
+      - --fields
+      - Id,Version
+      - --csv
+  loop: "{{ socios_katello_content_views }}"
+  register: socios_content_view_version_lists
+  changed_when: false
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Extract canonical latest SourceOS content-view version IDs
+  ansible.builtin.set_fact:
+    socios_katello_latest_content_view_versions: >-
+      {{ (socios_katello_latest_content_view_versions | default({})) | combine({
+        item.item.name: {
+          'id': ((item.stdout_lines | last).split(',')[0] | trim),
+          'version': ((item.stdout_lines | last).split(',')[1] | trim),
+          'raw': item.stdout_lines
+        }
+      }) }}
+  loop: "{{ socios_content_view_version_lists.results | default([]) }}"
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - item.stdout_lines is defined
+    - item.stdout_lines | length > 1
+
+- name: Evaluate evidence gate before promotion (fail-closed)
+  ansible.builtin.include_tasks: evidence_gate.yml
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_katello_promotion_evidence_gate_enabled
+
+- name: Promote SourceOS content views through lifecycle environments
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - content-view
+      - version
+      - promote
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --content-view
+      - "{{ item.0.name }}"
+      - --from-lifecycle-environment
+      - "{{ socios_katello_content_view_promote_from_lifecycle_environment }}"
+      - --to-lifecycle-environment
+      - "{{ item.1.name }}"
+  loop: "{{ socios_katello_content_views | product(socios_katello_lifecycle_environments) | list }}"
+  register: socios_content_view_promote_results
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - (not socios_katello_promotion_evidence_gate_enabled) or (socios_katello_promotion_admitted | default(false) | bool)
+
+- name: Check SourceOS activation keys
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - activation-key
+      - list
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --search
+      - "name = {{ item.name }}"
+      - --fields
+      - Id
+      - --csv
+  loop: "{{ socios_katello_activation_keys }}"
+  register: socios_activation_key_checks
+  changed_when: false
+  failed_when: false
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Create SourceOS activation keys when missing
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - activation-key
+      - create
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.name }}"
+      - --description
+      - "{{ item.description | default('SourceOS activation key') }}"
+      - --lifecycle-environment
+      - "{{ item.lifecycle_environment }}"
+      - --content-view
+      - "{{ item.content_view }}"
+  loop: "{{ socios_katello_activation_keys }}"
+  loop_control:
+    extended: true
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_activation_key_checks.results[ansible_loop.index0].stdout_lines | length <= 1
+
+- name: Apply SourceOS activation-key content overrides
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - activation-key
+      - content-override
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.0.name }}"
+      - --content-label
+      - "{{ item.1.content_label }}"
+      - --override-name
+      - "{{ item.1.override_name }}"
+      - --value
+      - "{{ item.1.value | string | lower }}"
+  loop: "{{ socios_katello_activation_keys | subelements('content_overrides', skip_missing=True) }}"
+  register: socios_activation_key_override_results
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Verify SourceOS activation-key product content after overrides
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_katello_server_url }}"
+      - activation-key
+      - product-content
+      - --organization
+      - "{{ socios_katello_organization }}"
+      - --name
+      - "{{ item.0.name }}"
+      - --content-access-mode-all
+      - "{{ socios_katello_activation_key_product_content_access_mode_all | string | lower }}"
+      - --csv
+  loop: "{{ socios_katello_activation_keys | subelements('content_overrides', skip_missing=True) }}"
+  register: socios_activation_key_product_content_verifications
+  changed_when: false
+  failed_when: false
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_katello_activation_key_verify_overrides
+
+- name: Assert SourceOS activation-key content labels are visible after override
+  ansible.builtin.assert:
+    that:
+      - item.item.1.content_label in (item.stdout | default(''))
+    fail_msg: "Activation key {{ item.item.0.name }} does not list expected content label {{ item.item.1.content_label }} after content override."
+  loop: "{{ socios_activation_key_product_content_verifications.results | default([]) }}"
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_katello_activation_key_verify_overrides
+
+- name: Ensure SourceOS lifecycle receipt directory exists
+  ansible.builtin.file:
+    path: "{{ socios_katello_receipt_dir }}"
+    state: directory
+    mode: "0750"
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Emit SourceOS Katello lifecycle receipt scaffold
+  ansible.builtin.copy:
+    dest: "{{ socios_katello_lifecycle_receipt_path }}"
+    mode: "0640"
+    content: |
+      {{ {
+        'apiVersion': 'socios.sourceos.ai/v0',
+        'kind': 'KatelloLifecycleReceipt',
+        'organization': socios_katello_organization,
+        'serverUrl': socios_katello_server_url,
+        'contentViews': socios_katello_content_views,
+        'lifecycleEnvironments': socios_katello_lifecycle_environments,
+        'activationKeys': socios_katello_activation_keys,
+        'latestContentViewVersions': (socios_katello_latest_content_view_versions | default({})),
+        'contentViewVersionLists': (socios_content_view_version_lists.results | default([])),
+        'promotionAdmission': {
+          'gateEnabled': socios_katello_promotion_evidence_gate_enabled,
+          'requireAdmission': socios_katello_promotion_require_admission,
+          'admitted': (socios_katello_promotion_admitted | default(false)),
+          'reason': (socios_katello_promotion_admission_reason | default('gate-disabled')),
+          'evidenceBundlePath': socios_katello_release_evidence_bundle_path,
+          'trustChainHook': (socios_katello_trust_chain_admission_command | default([]))
+        },
+        'contentViewPromotions': (socios_content_view_promote_results.results | default([])),
+        'activationKeyOverrides': (socios_activation_key_override_results.results | default([])),
+        'activationKeyProductContentVerifications': (socios_activation_key_product_content_verifications.results | default([]))
+      } | to_nice_json }}
+  when: not socios_katello_lifecycle_dry_run
+
+- name: Sign SourceOS Katello lifecycle receipt when enabled
+  ansible.builtin.include_tasks: sign_lifecycle_receipt.yml
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_katello_lifecycle_receipt_signing_enabled
+
+- name: Verify SourceOS Katello lifecycle receipt signature when enabled
+  ansible.builtin.include_tasks: verify_lifecycle_receipt.yml
+  when:
+    - not socios_katello_lifecycle_dry_run
+    - socios_katello_lifecycle_receipt_signing_enabled
+    - socios_katello_lifecycle_receipt_verify_after_sign | default(false) | bool

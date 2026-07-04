@@ -1,0 +1,20 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="SourceOS smoke runner"
+LABEL org.opencontainers.image.description="Minimal Python/QEMU runtime for SourceOS live ISO smoke checks"
+LABEL org.opencontainers.image.source="https://github.com/SociOS-Linux/socios"
+
+RUN microdnf install -y \
+      python3 \
+      qemu-system-x86-core \
+      procps-ng \
+      findutils \
+      coreutils \
+    && microdnf clean all
+
+WORKDIR /workspace
+COPY tools/sourceos-smoke-runner /usr/local/bin/sourceos-smoke-runner
+RUN chmod 0755 /usr/local/bin/sourceos-smoke-runner
+
+ENTRYPOINT ["/usr/local/bin/sourceos-smoke-runner"]

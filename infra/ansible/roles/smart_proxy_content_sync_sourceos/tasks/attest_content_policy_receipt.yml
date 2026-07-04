@@ -1,0 +1,59 @@
+---
+- name: Validate content policy receipt attestation provider
+  ansible.builtin.assert:
+    that:
+      - socios_smart_proxy_content_sync_receipt_attestation_provider in ['cosign']
+    fail_msg: "Unsupported content policy receipt attestation provider: {{ socios_smart_proxy_content_sync_receipt_attestation_provider }}"
+
+- name: Validate content policy receipt exists before attestation
+  ansible.builtin.stat:
+    path: "{{ socios_smart_proxy_content_sync_receipt_path }}"
+  register: socios_smart_proxy_content_sync_receipt_stat
+
+- name: Require content policy receipt before attestation
+  ansible.builtin.assert:
+    that:
+      - socios_smart_proxy_content_sync_receipt_stat.stat.exists
+    fail_msg: "Content policy receipt not found at {{ socios_smart_proxy_content_sync_receipt_path }}."
+
+- name: Preview content policy receipt attestation command
+  ansible.builtin.debug:
+    msg:
+      argv:
+        - cosign
+        - sign-blob
+        - --yes
+        - --output-signature
+        - "{{ socios_smart_proxy_content_sync_receipt_attestation_blob_path }}"
+        - "{{ socios_smart_proxy_content_sync_receipt_path }}"
+      identity_ref: "{{ socios_smart_proxy_content_sync_receipt_attestation_identity_ref }}"
+
+- name: Attest SourceOS content policy receipt
+  ansible.builtin.command:
+    argv:
+      - cosign
+      - sign-blob
+      - --yes
+      - --output-signature
+      - "{{ socios_smart_proxy_content_sync_receipt_attestation_blob_path }}"
+      - "{{ socios_smart_proxy_content_sync_receipt_path }}"
+  register: socios_smart_proxy_content_sync_receipt_attestation_result
+  changed_when: true
+
+- name: Emit SourceOS content policy receipt attestation metadata
+  ansible.builtin.copy:
+    dest: "{{ socios_smart_proxy_content_sync_receipt_attestation_path }}"
+    mode: "0640"
+    content: |
+      {{ {
+        'apiVersion': 'socios.sourceos.ai/v0',
+        'kind': 'SmartProxyContentPolicyReceiptAttestation',
+        'receiptPath': socios_smart_proxy_content_sync_receipt_path,
+        'attestationPath': socios_smart_proxy_content_sync_receipt_attestation_path,
+        'blobPath': socios_smart_proxy_content_sync_receipt_attestation_blob_path,
+        'provider': socios_smart_proxy_content_sync_receipt_attestation_provider,
+        'identityRef': socios_smart_proxy_content_sync_receipt_attestation_identity_ref,
+        'resultRc': socios_smart_proxy_content_sync_receipt_attestation_result.rc,
+        'resultStdout': socios_smart_proxy_content_sync_receipt_attestation_result.stdout_lines | default([]),
+        'resultStderr': socios_smart_proxy_content_sync_receipt_attestation_result.stderr_lines | default([])
+      } | to_nice_json }}

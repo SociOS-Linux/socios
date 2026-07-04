@@ -4,7 +4,7 @@ This document clarifies how a fog-capable node may participate in the optional `
 
 ## Non-default posture
 
-Enrollment is off by default.
+Enrollment is **off by default**.
 A fog-capable SourceOS node must be able to boot, mount its fog substrate, run local workloads, and participate in topic replication without `socios`.
 
 ## What enrollment enables

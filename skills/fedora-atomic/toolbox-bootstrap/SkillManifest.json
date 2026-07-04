@@ -1,0 +1,43 @@
+{
+  "id": "urn:srcos:skill:fedora-atomic.toolbox-bootstrap",
+  "type": "SkillManifest",
+  "specVersion": "2.0.0",
+  "name": "fedora-atomic.toolbox-bootstrap",
+  "version": "0.1.0",
+  "entryDoc": "skills/fedora-atomic/toolbox-bootstrap/SKILL.md",
+  "description": "Creates a toolbox profile and installs baseline CLI/dev tooling inside it (keeps host immutable).",
+  "activationRules": {
+    "commands": [
+      "toolbox.bootstrap",
+      "fedora.atomic.toolbox",
+      "dev.tools.install"
+    ],
+    "filePatterns": [],
+    "intentTags": [
+      "os.bootstrap",
+      "fedora-atomic",
+      "toolbox"
+    ]
+  },
+  "requires": {
+    "binaries": [
+      "toolbox"
+    ],
+    "anyBins": [],
+    "tools": []
+  },
+  "policyBindings": [
+    "urn:srcos:policy:socios.optin.signed-intent"
+  ],
+  "artifactOutputs": [
+    "artifact:stdout",
+    "artifact:receipt"
+  ],
+  "reviewMode": false,
+  "allowShellExecution": true,
+  "protectedPaths": [
+    "/etc",
+    "/usr",
+    "/boot"
+  ]
+}

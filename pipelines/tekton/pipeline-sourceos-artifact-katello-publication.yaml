@@ -1,0 +1,97 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: sourceos-artifact-katello-publication
+spec:
+  description: >-
+    Materialize a SourceOS build request, record artifact hashes/sizes, and emit a
+    Katello artifact publication receipt. Upload execution is disabled by default.
+  params:
+    - name: contentSpecRef
+      type: string
+    - name: buildRequestRef
+      type: string
+    - name: requestedBy
+      type: string
+    - name: artifactPaths
+      type: string
+    - name: channel
+      type: string
+      default: dev
+    - name: architecture
+      type: string
+      default: x86_64
+    - name: buildSystemRef
+      type: string
+      default: sourceos://build-system/external
+    - name: katelloServerUrl
+      type: string
+      default: https://foreman.example.com
+    - name: organization
+      type: string
+      default: SourceOS
+    - name: product
+      type: string
+      default: SourceOS Files
+    - name: repository
+      type: string
+      default: sourceos-live-iso
+    - name: publishEnabled
+      type: string
+      default: "false"
+  workspaces:
+    - name: source
+  tasks:
+    - name: materialize-sourceos-build-request
+      taskRef:
+        name: materialize-sourceos-build-request
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: contentSpecRef
+          value: $(params.contentSpecRef)
+        - name: buildRequestRef
+          value: $(params.buildRequestRef)
+        - name: requestedBy
+          value: $(params.requestedBy)
+        - name: channel
+          value: $(params.channel)
+        - name: architecture
+          value: $(params.architecture)
+        - name: katelloProduct
+          value: $(params.product)
+        - name: katelloRepository
+          value: $(params.repository)
+
+    - name: record-sourceos-artifact-build
+      runAfter: [materialize-sourceos-build-request]
+      taskRef:
+        name: record-sourceos-artifact-build
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: artifactPaths
+          value: $(params.artifactPaths)
+        - name: buildSystemRef
+          value: $(params.buildSystemRef)
+
+    - name: publish-sourceos-artifacts-to-katello
+      runAfter: [record-sourceos-artifact-build]
+      taskRef:
+        name: publish-sourceos-artifacts-to-katello
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: katelloServerUrl
+          value: $(params.katelloServerUrl)
+        - name: organization
+          value: $(params.organization)
+        - name: product
+          value: $(params.product)
+        - name: repository
+          value: $(params.repository)
+        - name: enabled
+          value: $(params.publishEnabled)

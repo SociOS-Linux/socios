@@ -1,0 +1,43 @@
+apiVersion: socios.sourceos.ai/v0
+kind: ImagePolicy
+metadata:
+  name: sourceos-smoke-runner
+spec:
+  imageRef: quay.io/socios/sourceos-smoke-runner:dev
+  baseImage:
+    ref: registry.fedoraproject.org/fedora-minimal
+    digest: REPLACE_WITH_VERIFIED_DIGEST
+    requireDigest: true
+    verificationReceiptPath: .workstation/reports/images/sourceos-smoke-runner-base-image.json
+  sbom:
+    required: true
+    format: spdx-json
+    outputPath: .workstation/reports/sbom/sourceos-smoke-runner.spdx.json
+  scan:
+    required: true
+    provider: grype
+    failOnSeverity: high
+    outputPath: .workstation/reports/scans/sourceos-smoke-runner-grype.json
+  provenance:
+    required: true
+    outputPath: .workstation/reports/provenance/sourceos-smoke-runner-provenance.json
+    requiredRefs:
+      - imageRef
+      - baseImage
+      - baseImageReceiptPath
+      - sbomPath
+      - scanPath
+  evidenceBundle:
+    required: true
+    outputPath: .workstation/reports/evidence/sourceos-smoke-runner-evidence.json
+    attestationRequired: false
+    attestationPath: .workstation/reports/attest/sourceos-smoke-runner-evidence.sig
+  signing:
+    required: false
+    provider: cosign
+    signaturePath: .workstation/reports/attest/sourceos-smoke-runner.sig
+  notes:
+    - Replace baseImage.digest with a verified digest before enabling release publication.
+    - Runtime verification records the resolved digest in baseImage.verificationReceiptPath.
+    - Keep signing optional until cross-stack signing authority is finalized.
+    - Scan, provenance, and evidence-bundle records are required for release-grade image promotion.
