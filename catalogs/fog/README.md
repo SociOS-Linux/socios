@@ -1,6 +1,6 @@
 # Fog catalogs
 
-This directory is the placeholder home for signed fog-related catalogs once a node is explicitly enrolled into `socios`.
+This directory is the placeholder home for **opt-in**, signed fog-related catalogs once a node is explicitly enrolled into `socios`.
 
 ## Intended catalog items
 
