@@ -1,0 +1,20 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="SourceOS Hammer runner"
+LABEL org.opencontainers.image.description="Minimal runtime scaffold for Foreman/Katello Hammer CLI automation"
+LABEL org.opencontainers.image.source="https://github.com/SociOS-Linux/socios"
+
+RUN microdnf install -y \
+      ruby \
+      rubygems \
+      python3 \
+      ca-certificates \
+      jq \
+      coreutils \
+      findutils \
+    && gem install --no-document hammer_cli hammer_cli_foreman hammer_cli_katello \
+    && microdnf clean all
+
+WORKDIR /workspace
+ENTRYPOINT ["hammer"]

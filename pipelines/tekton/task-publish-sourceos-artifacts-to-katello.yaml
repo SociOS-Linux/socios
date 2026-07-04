@@ -1,0 +1,61 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: publish-sourceos-artifacts-to-katello
+spec:
+  description: >-
+    Validate SourceOS artifact build receipt inputs and optionally upload artifacts
+    into a Katello file repository. Emits a Katello publication receipt.
+  params:
+    - name: artifactBuildReceiptPath
+      type: string
+      default: .workstation/reports/sourceos/artifact-build-receipt.json
+    - name: katelloServerUrl
+      type: string
+      default: https://foreman.example.com
+    - name: organization
+      type: string
+      default: SourceOS
+    - name: product
+      type: string
+      default: SourceOS Files
+    - name: repository
+      type: string
+      default: sourceos-live-iso
+    - name: enabled
+      type: string
+      default: "false"
+    - name: receiptPath
+      type: string
+      default: .workstation/reports/sourceos/katello-artifact-publication.json
+  workspaces:
+    - name: source
+      description: Workspace containing artifacts and receipts.
+  steps:
+    - name: publish
+      image: docker.io/library/busybox:latest
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -eu
+        test -f "$(params.artifactBuildReceiptPath)"
+        mkdir -p "$(dirname "$(params.receiptPath)")"
+        status="skipped"
+        if [ "$(params.enabled)" = "true" ]; then
+          echo "Katello upload execution is intentionally deferred to a Hammer-capable runner image." >&2
+          status="requested"
+        fi
+        cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SourceOSKatelloArtifactPublicationReceipt",
+          "artifactBuildReceiptPath": "$(params.artifactBuildReceiptPath)",
+          "katelloServerUrl": "$(params.katelloServerUrl)",
+          "organization": "$(params.organization)",
+          "product": "$(params.product)",
+          "repository": "$(params.repository)",
+          "enabled": "$(params.enabled)",
+          "status": "${status}",
+          "receiptPath": "$(params.receiptPath)"
+        }
+        JSON

@@ -1,0 +1,26 @@
+apiVersion: socios.sourceos.ai/v0
+kind: EvidencePublicationPolicy
+metadata:
+  name: sourceos-smoke-runner-image-evidence
+spec:
+  publicationMode: manual
+  publicationEnabledByDefault: false
+  subjectRef: quay.io/socios/sourceos-smoke-runner:dev
+  targetCatalogRef: sourceos://catalog/images/sourceos-smoke-runner
+  requiredEvidence:
+    - .workstation/reports/images/sourceos-smoke-runner-base-image.json
+    - .workstation/reports/images/sourceos-smoke-runner-task-images.json
+    - .workstation/reports/images/sourceos-smoke-runner-build.json
+    - .workstation/reports/sbom/sourceos-smoke-runner.spdx.json
+    - .workstation/reports/scans/sourceos-smoke-runner-grype.json
+    - .workstation/reports/provenance/sourceos-smoke-runner-provenance.json
+    - .workstation/reports/evidence/sourceos-smoke-runner-evidence.json
+  attestations:
+    requiredForRelease: false
+    evidenceAttestationPath: .workstation/reports/attest/sourceos-smoke-runner-evidence.sig
+    imageAttestationPath: .workstation/reports/attest/sourceos-smoke-runner.sig
+  receiptPath: .workstation/reports/publication/sourceos-smoke-runner-evidence-publication.json
+  notes:
+    - Publication is disabled by default.
+    - This policy records the required evidence set before catalog or registry publication.
+    - Final SourceOS/SociOS catalog publication authority is intentionally deferred.

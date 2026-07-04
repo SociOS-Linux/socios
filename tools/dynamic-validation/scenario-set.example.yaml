@@ -1,0 +1,223 @@
+---
+# Example dynamic-validation scenario set for a SourceOS image.
+#
+# Each scenario is a GUI/OS automation flow that Agent-S (simular-ai computer-use
+# agent) runs inside a controller container against a DISPOSABLE guest VM. It
+# declares WHAT to exercise on the running image and WHAT evidence to record.
+#
+# Lint it anywhere (no VM / Agent-S needed):
+#   python tools/dynamic-validation/run.py validate \
+#     --scenarios tools/dynamic-validation/scenario-set.example.yaml
+#
+# Show what a real run WOULD do, then emit a DRY_RUN evidence stub the gate denies:
+#   python tools/dynamic-validation/run.py run \
+#     --scenarios tools/dynamic-validation/scenario-set.example.yaml \
+#     --dry-run --emit-evidence .workstation/state/dynval/evidence-bundle.json
+#
+# Real execution (HOST-GATED: Linux + /dev/kvm + Agent-S + a disposable guest VM)
+# lives in tools/dynamic-validation/run.py; host actions are policy-gated by
+# policy/dynamic-validation-host-actions.yaml.
+apiVersion: socios.sourceos.ai/v0
+kind: DynamicValidationScenarioSet
+metadata:
+  name: sourceos-workstation-dynamic-validation
+  labels:
+    flavor: sourceos-workstation
+    channel: dev
+    surface: live-usb
+spec:
+  targetImage:
+    artifactRef: .workstation/state/build/sourceos-workstation-dev.iso
+    format: iso
+  guest:
+    disposable: true
+    memoryMiB: 4096
+    cpus: 2
+    networkProfile: isolated
+    snapshotBeforeRun: true
+  scenarios:
+    # --- boot / login / first-run -----------------------------------------
+    - id: boot-to-desktop
+      title: Live image boots to a usable desktop
+      category: boot-login-firstrun
+      covers: [LIV-01, LIV-02]
+      safetyClass: safe
+      steps:
+        - action: gui_wait_for
+          target: the SourceOS desktop or login greeter
+          timeoutSeconds: 240
+        - action: screenshot
+          note: capture the first interactive frame
+      expected:
+        uiContains: ["SourceOS"]
+        uiAbsent: ["kernel panic", "Oops", "emergency mode"]
+        serialMatches: ["systemd\\["]
+      evidence_requirements:
+        screenshots: per-step
+        actionTrace: true
+        ocrGrounding: true
+        replayRef: true
+        serialLog: true
+
+    - id: first-run-account
+      title: First-run wizard creates a local account and reaches the desktop
+      category: boot-login-firstrun
+      covers: [LIV-02, LIV-03]
+      safetyClass: safe
+      steps:
+        - action: gui_wait_for
+          target: the welcome / first-run setup window
+          timeoutSeconds: 120
+        - action: gui_click
+          target: the Next or Continue button
+        - action: gui_type
+          target: the username field
+          text: sourceos-test
+        - action: gui_click
+          target: the Finish or Done button
+        - action: gui_wait_for
+          target: the desktop is shown and idle
+      expected:
+        uiAbsent: ["error", "failed to create user"]
+      evidence_requirements:
+        screenshots: per-step
+        actionTrace: true
+        ocrGrounding: true
+        replayRef: true
+
+    # --- network / storage ------------------------------------------------
+    - id: network-bring-up
+      title: NetworkManager brings up a connection and DNS resolves
+      category: network-storage
+      covers: [LIV-04]
+      safetyClass: safe
+      steps:
+        - action: guest_command
+          target: nmcli -t -f STATE general
+          timeoutSeconds: 30
+        - action: guest_command
+          target: getent hosts deb.sourceos.ai
+          timeoutSeconds: 30
+      expected:
+        guestCommandExit:
+          "nmcli -t -f STATE general": 0
+          "getent hosts deb.sourceos.ai": 0
+      evidence_requirements:
+        screenshots: on-failure
+        actionTrace: true
+        ocrGrounding: false
+        replayRef: true
+
+    - id: storage-mount-write
+      title: A data partition mounts read-write and survives a sync
+      category: network-storage
+      covers: [LIV-05]
+      safetyClass: safe
+      steps:
+        - action: guest_command
+          target: lsblk -o NAME,FSTYPE,MOUNTPOINT
+        - action: guest_command
+          target: sh -c 'echo ok > /var/tmp/dynval-probe && sync && cat /var/tmp/dynval-probe'
+      expected:
+        guestCommandExit:
+          "sh -c 'echo ok > /var/tmp/dynval-probe && sync && cat /var/tmp/dynval-probe'": 0
+      evidence_requirements:
+        screenshots: none
+        actionTrace: true
+        ocrGrounding: false
+        replayRef: true
+
+    # --- service activation ----------------------------------------------
+    - id: core-services-active
+      title: Core SourceOS services reach active (running)
+      category: service-activation
+      covers: [LIV-06, LIV-07]
+      safetyClass: safe
+      steps:
+        - action: guest_command
+          target: systemctl is-system-running --wait
+          timeoutSeconds: 120
+        - action: guest_command
+          target: systemctl --failed --no-legend
+      expected:
+        guestCommandExit:
+          "systemctl --failed --no-legend": 0
+      evidence_requirements:
+        screenshots: on-failure
+        actionTrace: true
+        ocrGrounding: false
+        replayRef: true
+        serialLog: true
+
+    # --- rollback / update ------------------------------------------------
+    - id: ostree-update-rollback
+      title: An rpm-ostree update stages a new deployment and rolls back cleanly
+      category: rollback-update
+      covers: [LIV-08, LIV-09]
+      safetyClass: destructive
+      steps:
+        - action: guest_command
+          target: rpm-ostree status
+        - action: guest_command
+          target: rpm-ostree upgrade --check
+          timeoutSeconds: 180
+        - action: guest_command
+          target: rpm-ostree rollback
+          note: revert to the prior deployment; guest is reverted to base snapshot after.
+      expected:
+        guestCommandExit:
+          "rpm-ostree status": 0
+      evidence_requirements:
+        screenshots: on-failure
+        actionTrace: true
+        ocrGrounding: false
+        replayRef: true
+        serialLog: true
+
+    # --- red-team safe probes --------------------------------------------
+    - id: redteam-priv-esc-probe
+      title: Known-safe privilege-escalation probe is refused
+      category: redteam-safe-probe
+      covers: [LIV-10, LIV-11]
+      safetyClass: destructive
+      steps:
+        - action: guest_command
+          target: sh -c 'id; sudo -n true; echo exit=$?'
+          note: non-interactive sudo MUST be refused for the unprivileged test user.
+        - action: guest_command
+          target: sh -c 'cat /etc/shadow; echo exit=$?'
+          note: unprivileged read of /etc/shadow MUST fail.
+      expected:
+        guestCommandExit:
+          "sh -c 'cat /etc/shadow; echo exit=$?'": 1
+      evidence_requirements:
+        screenshots: none
+        actionTrace: true
+        ocrGrounding: false
+        replayRef: true
+
+    # --- blue-team detect / contain / forensics smoke --------------------
+    - id: blueteam-detect-contain
+      title: Audit logging records a denial and the artifact is forensically captured
+      category: blueteam-detect-contain-forensics
+      covers: [LIV-12, LIV-13]
+      safetyClass: safe
+      steps:
+        - action: guest_command
+          target: sh -c 'journalctl -k --no-pager | tail -n 50'
+          note: confirm the kernel/audit log is populated (detect).
+        - action: guest_command
+          target: sh -c 'ausearch -m avc 2>/dev/null | tail -n 20 || true'
+          note: surface SELinux/AppArmor denials if any (detect).
+        - action: host_command
+          target: snapshot-guest --label forensic-capture
+          note: HOST policy-gated. Capture a guest snapshot for offline forensics (contain).
+      expected:
+        guestCommandExit:
+          "sh -c 'journalctl -k --no-pager | tail -n 50'": 0
+      evidence_requirements:
+        screenshots: on-failure
+        actionTrace: true
+        ocrGrounding: false
+        replayRef: true
+        serialLog: true

@@ -4,9 +4,10 @@ metadata:
   name: sourceos-build-smoke-runner-image
 spec:
   description: >-
-    Build, optionally publish, generate SBOM, scan, emit provenance, bundle evidence,
-    optionally attest, and optionally promote the SourceOS smoke-runner image used by
-    live ISO smoke checks.
+    Check task image refs, resolve task image digests, verify base image, build,
+    optionally publish, generate SBOM, scan, emit provenance, bundle evidence,
+    optionally attest, optionally promote, and optionally publish the evidence receipt
+    for the SourceOS smoke-runner image.
   params:
     - name: imageRef
       type: string
@@ -20,6 +21,9 @@ spec:
     - name: requirePinnedBase
       type: string
       default: "true"
+    - name: requirePinnedTaskImages
+      type: string
+      default: "false"
     - name: push
       type: string
       default: "false"
@@ -29,7 +33,7 @@ spec:
     - name: attestEvidence
       type: string
       default: "false"
-    - name: promote
+    - name: publishEvidence
       type: string
       default: "false"
     - name: builderImage
@@ -47,13 +51,87 @@ spec:
     - name: publisherImage
       type: string
       default: quay.io/skopeo/stable:latest
+    - name: inspectorImage
+      type: string
+      default: quay.io/skopeo/stable:latest
+    - name: utilityImage
+      type: string
+      default: docker.io/library/busybox:latest
     - name: failOnSeverity
       type: string
       default: high
+    - name: targetCatalogRef
+      type: string
+      default: sourceos://catalog/images/sourceos-smoke-runner
   workspaces:
     - name: source
   tasks:
+    - name: check-smoke-runner-task-images
+      taskRef:
+        name: check-smoke-runner-task-images
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: requirePinnedTaskImages
+          value: $(params.requirePinnedTaskImages)
+        - name: builderImage
+          value: $(params.builderImage)
+        - name: sbomImage
+          value: $(params.sbomImage)
+        - name: scannerImage
+          value: $(params.scannerImage)
+        - name: attestImage
+          value: $(params.signingImage)
+        - name: publisherImage
+          value: $(params.publisherImage)
+        - name: inspectorImage
+          value: $(params.inspectorImage)
+        - name: utilityImage
+          value: $(params.utilityImage)
+
+    - name: resolve-smoke-runner-task-image-digests
+      runAfter: [check-smoke-runner-task-images]
+      taskRef:
+        name: resolve-smoke-runner-task-image-digests
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: resolverImage
+          value: $(params.inspectorImage)
+        - name: builderImage
+          value: $(params.builderImage)
+        - name: sbomImage
+          value: $(params.sbomImage)
+        - name: scannerImage
+          value: $(params.scannerImage)
+        - name: attestImage
+          value: $(params.signingImage)
+        - name: publisherImage
+          value: $(params.publisherImage)
+        - name: inspectorImage
+          value: $(params.inspectorImage)
+        - name: utilityImage
+          value: $(params.utilityImage)
+
+    - name: verify-smoke-runner-base-image
+      runAfter: [resolve-smoke-runner-task-image-digests]
+      taskRef:
+        name: verify-smoke-runner-base-image
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: baseImage
+          value: $(params.baseImage)
+        - name: requirePinnedBase
+          value: $(params.requirePinnedBase)
+        - name: inspectorImage
+          value: $(params.inspectorImage)
+
     - name: build-smoke-runner-image
+      runAfter: [verify-smoke-runner-base-image]
       taskRef:
         name: build-smoke-runner-image
       workspaces:
@@ -169,3 +247,18 @@ spec:
           value: $(params.promote)
         - name: publisherImage
           value: $(params.publisherImage)
+
+    - name: publish-smoke-runner-image-evidence
+      runAfter: [promote-smoke-runner-image]
+      taskRef:
+        name: publish-smoke-runner-image-evidence
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: enabled
+          value: $(params.publishEvidence)
+        - name: imageRef
+          value: $(params.imageRef)
+        - name: targetCatalogRef
+          value: $(params.targetCatalogRef)

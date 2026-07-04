@@ -1,4 +1,17 @@
 ---
+# Real cosign signing of the KatelloLifecycleReceipt.
+#
+# Coherent cosign posture (shared across SourceOS signing surfaces):
+#   1. Prefer cosign keyless (OIDC) when the identity mode resolves to "keyless".
+#   2. Else use a configured key (cosign key path / KMS / env:// ref).
+#   3. When NO usable signing identity is configured -> FAIL CLOSED: the receipt
+#      is explicitly marked `unsigned`. It is NEVER labelled signed on this path.
+#
+# This file only runs when socios_katello_lifecycle_receipt_signing_enabled is
+# true (gated by tasks/main.yml). The signing-disabled path is itself the
+# fail-closed-unsigned default and is handled below for any enabled-but-
+# unconfigured invocation.
+
 - name: Validate lifecycle receipt signing provider
   ansible.builtin.assert:
     that:
@@ -16,31 +29,139 @@
       - socios_katello_lifecycle_receipt_stat.stat.exists
     fail_msg: "Lifecycle receipt not found at {{ socios_katello_lifecycle_receipt_path }}."
 
+# --- Identity resolution (keyless OIDC, else configured key, else none) -------
+
+- name: Locate the cosign binary
+  ansible.builtin.command:
+    argv:
+      - command
+      - -v
+      - cosign
+  register: socios_katello_cosign_which
+  changed_when: false
+  failed_when: false
+
+- name: Resolve effective cosign signing key (var override, else env)
+  ansible.builtin.set_fact:
+    socios_katello_cosign_key_effective: >-
+      {{ socios_katello_lifecycle_receipt_signing_key
+         | default(lookup('env', 'SOCIOS_KATELLO_COSIGN_KEY'), true) }}
+    socios_katello_cosign_identity_mode_effective: >-
+      {{ socios_katello_lifecycle_receipt_signing_identity_mode
+         | default(lookup('env', 'SOCIOS_KATELLO_COSIGN_IDENTITY'), true)
+         | default('', true) }}
+
+- name: Determine whether cosign keyless OIDC is available
+  # Keyless is "available" when identity mode is keyless AND an OIDC token-bearing
+  # context is present (ambient CI OIDC, or an explicit token env var). We do not
+  # block on it being valid; cosign itself fails closed if the token is unusable.
+  ansible.builtin.set_fact:
+    socios_katello_cosign_keyless_available: >-
+      {{ (socios_katello_cosign_identity_mode_effective | lower == 'keyless')
+         and (
+           (lookup('env', 'SIGSTORE_ID_TOKEN') | default('', true) | length > 0)
+           or (lookup('env', 'ACTIONS_ID_TOKEN_REQUEST_TOKEN') | default('', true) | length > 0)
+           or (lookup('env', 'SOCIOS_KATELLO_COSIGN_OIDC_TOKEN') | default('', true) | length > 0)
+         ) }}
+
+- name: Resolve effective signing mode
+  ansible.builtin.set_fact:
+    socios_katello_cosign_mode: >-
+      {{ 'keyless'
+         if (socios_katello_cosign_keyless_available | bool)
+         else ('key' if (socios_katello_cosign_key_effective | length > 0) else 'none') }}
+
+- name: Decide whether real signing can proceed
+  # True only when an identity is usable AND cosign is installed. Everything else
+  # is the fail-closed-unsigned path.
+  ansible.builtin.set_fact:
+    socios_katello_cosign_should_sign: >-
+      {{ (socios_katello_cosign_mode in ['keyless', 'key'])
+         and (socios_katello_cosign_which.rc == 0) }}
+
+# --- Fail-closed: no usable identity OR no cosign binary -> unsigned ----------
+
+- name: Mark lifecycle receipt unsigned (fail-closed; no signing identity or no cosign)
+  when: not (socios_katello_cosign_should_sign | bool)
+  block:
+    - name: Compute fail-closed reason
+      ansible.builtin.set_fact:
+        socios_katello_lifecycle_unsigned_reason: >-
+          {{ 'cosign-binary-not-found'
+             if (socios_katello_cosign_which.rc != 0)
+             else 'no-signing-identity-configured' }}
+
+    - name: Emit unsigned KatelloLifecycleReceiptSignature metadata (fail-closed)
+      ansible.builtin.copy:
+        dest: "{{ socios_katello_lifecycle_receipt_signature_metadata_path }}"
+        mode: "0640"
+        content: |
+          {{ {
+            'apiVersion': 'socios.sourceos.ai/v0',
+            'kind': 'KatelloLifecycleReceiptSignature',
+            'status': 'unsigned',
+            'receiptPath': socios_katello_lifecycle_receipt_path,
+            'signaturePath': none,
+            'provider': socios_katello_lifecycle_receipt_signing_provider,
+            'identityMode': socios_katello_cosign_mode,
+            'identityRef': none,
+            'reason': socios_katello_lifecycle_unsigned_reason
+          } | to_nice_json }}
+
+    - name: Report fail-closed unsigned posture
+      ansible.builtin.debug:
+        msg:
+          - "Lifecycle receipt NOT signed (fail-closed)."
+          - "Reason: {{ socios_katello_lifecycle_unsigned_reason }}"
+          - "Configure SOCIOS_KATELLO_COSIGN_IDENTITY=keyless (with an OIDC token) or SOCIOS_KATELLO_COSIGN_KEY to enable signing."
+
+# --- Real signing path (keyless OIDC or configured key) -----------------------
+# These tasks are skipped on the fail-closed path because the effective mode is
+# 'none' (or cosign is absent, which also resolves the unsigned branch above).
+
+- name: Build cosign sign-blob argv
+  ansible.builtin.set_fact:
+    socios_katello_cosign_sign_argv: >-
+      {{ ['cosign', 'sign-blob', '--yes',
+          '--output-signature', socios_katello_lifecycle_receipt_signature_path]
+         + (['--key', socios_katello_cosign_key_effective]
+            if (socios_katello_cosign_mode == 'key') else [])
+         + [socios_katello_lifecycle_receipt_path] }}
+  when: socios_katello_cosign_should_sign | bool
+
 - name: Preview lifecycle receipt signing command
   ansible.builtin.debug:
     msg:
-      argv:
-        - cosign
-        - sign-blob
-        - --yes
-        - --output-signature
-        - "{{ socios_katello_lifecycle_receipt_signature_path }}"
-        - "{{ socios_katello_lifecycle_receipt_path }}"
-      identity_ref: "{{ socios_katello_lifecycle_receipt_signing_identity_ref }}"
+      argv: "{{ socios_katello_cosign_sign_argv }}"
+      identity_mode: "{{ socios_katello_cosign_mode }}"
+      identity_ref: "{{ socios_katello_lifecycle_receipt_signing_identity_ref | default('keyless-oidc', true) }}"
+  when: socios_katello_cosign_should_sign | bool
 
-- name: Sign SourceOS Katello lifecycle receipt
+- name: Sign SourceOS Katello lifecycle receipt with cosign
   ansible.builtin.command:
-    argv:
-      - cosign
-      - sign-blob
-      - --yes
-      - --output-signature
-      - "{{ socios_katello_lifecycle_receipt_signature_path }}"
-      - "{{ socios_katello_lifecycle_receipt_path }}"
+    argv: "{{ socios_katello_cosign_sign_argv }}"
   register: socios_katello_lifecycle_receipt_sign_result
   changed_when: true
+  when: socios_katello_cosign_should_sign | bool
 
-- name: Emit SourceOS Katello lifecycle signature metadata
+- name: Stat the emitted signature
+  ansible.builtin.stat:
+    path: "{{ socios_katello_lifecycle_receipt_signature_path }}"
+  register: socios_katello_lifecycle_signature_stat
+  when: socios_katello_cosign_should_sign | bool
+
+- name: Require a signature artifact before labelling signed (fail-closed)
+  ansible.builtin.assert:
+    that:
+      - socios_katello_lifecycle_receipt_sign_result.rc == 0
+      - socios_katello_lifecycle_signature_stat.stat.exists
+    fail_msg: >-
+      cosign sign-blob did not produce a signature at
+      {{ socios_katello_lifecycle_receipt_signature_path }}; refusing to label the
+      receipt signed.
+  when: socios_katello_cosign_should_sign | bool
+
+- name: Emit signed SourceOS Katello lifecycle signature metadata
   ansible.builtin.copy:
     dest: "{{ socios_katello_lifecycle_receipt_signature_metadata_path }}"
     mode: "0640"
@@ -48,11 +169,15 @@
       {{ {
         'apiVersion': 'socios.sourceos.ai/v0',
         'kind': 'KatelloLifecycleReceiptSignature',
+        'status': 'signed',
         'receiptPath': socios_katello_lifecycle_receipt_path,
         'signaturePath': socios_katello_lifecycle_receipt_signature_path,
         'provider': socios_katello_lifecycle_receipt_signing_provider,
-        'identityRef': socios_katello_lifecycle_receipt_signing_identity_ref,
+        'identityMode': socios_katello_cosign_mode,
+        'identityRef': (socios_katello_lifecycle_receipt_signing_identity_ref
+                        | default('keyless-oidc', true)),
         'signResultRc': socios_katello_lifecycle_receipt_sign_result.rc,
         'signResultStdout': socios_katello_lifecycle_receipt_sign_result.stdout_lines | default([]),
         'signResultStderr': socios_katello_lifecycle_receipt_sign_result.stderr_lines | default([])
       } | to_nice_json }}
+  when: socios_katello_cosign_should_sign | bool
