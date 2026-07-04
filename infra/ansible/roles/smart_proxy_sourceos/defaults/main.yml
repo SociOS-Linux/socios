@@ -1,0 +1,66 @@
+---
+socios_smart_proxy_dry_run: true
+socios_smart_proxy_servername: smart-proxy.example.com
+socios_smart_proxy_parent_foreman_url: https://foreman.example.com
+socios_smart_proxy_parent_foreman_host: foreman.example.com
+socios_smart_proxy_location: Default
+socios_smart_proxy_organization: SourceOS
+socios_smart_proxy_features:
+  - dhcp
+  - dns
+  - tftp
+  - httpboot
+  - templates
+  - content
+socios_smart_proxy_expected_features:
+  - tftp
+  - templates
+  - content
+socios_smart_proxy_verify_features: true
+socios_smart_proxy_enable_dhcp: false
+socios_smart_proxy_enable_dns: false
+socios_smart_proxy_enable_tftp: true
+socios_smart_proxy_enable_httpboot: true
+socios_smart_proxy_enable_templates: true
+socios_smart_proxy_enable_content: true
+socios_smart_proxy_provisioning_subnet_cidr: null
+socios_smart_proxy_httpboot_root: /var/lib/tftpboot
+socios_smart_proxy_content_sync_policy: selected-lifecycle-content
+socios_smart_proxy_certs_tar_path: "/root/{{ socios_smart_proxy_servername }}-certs.tar"
+socios_smart_proxy_certs_source_hint: "Run foreman-proxy-certs-generate on the parent Foreman/Katello host and copy the archive here."
+socios_smart_proxy_cert_archive_auto_retrieve: false
+socios_smart_proxy_cert_archive_generate_on_parent: false
+socios_smart_proxy_cert_archive_parent_host: "{{ socios_smart_proxy_parent_foreman_host }}"
+socios_smart_proxy_cert_archive_parent_path: "/root/{{ socios_smart_proxy_servername }}-certs.tar"
+socios_smart_proxy_cert_archive_local_tmp: "/tmp/{{ socios_smart_proxy_servername }}-certs.tar"
+socios_smart_proxy_cert_archive_retain_parent_copy: true
+socios_smart_proxy_registration_verify: true
+socios_smart_proxy_auto_discover_proxy_ids: true
+socios_smart_proxy_receipt_dir: /var/lib/socios/sourceos
+socios_smart_proxy_receipt_path: "{{ socios_smart_proxy_receipt_dir }}/smart-proxy-receipt.json"
+socios_smart_proxy_receipt_attestation_enabled: false
+socios_smart_proxy_receipt_attestation_provider: cosign
+socios_smart_proxy_receipt_attestation_identity_ref: null
+socios_smart_proxy_receipt_attestation_path: "{{ socios_smart_proxy_receipt_path }}.attestation.json"
+socios_smart_proxy_receipt_attestation_blob_path: "{{ socios_smart_proxy_receipt_path }}.sig"
+socios_smart_proxy_network_bindings_enabled: true
+socios_smart_proxy_domains:
+  - name: sourceos.local
+    description: SourceOS provisioning domain
+socios_smart_proxy_subnets:
+  - name: sourceos-provisioning
+    description: SourceOS provisioning network
+    network: 192.168.140.0
+    mask: 255.255.255.0
+    gateway: 192.168.140.1
+    dns_primary: 192.168.140.2
+    dns_secondary: 8.8.8.8
+    ipam: DHCP
+    from: 192.168.140.111
+    to: 192.168.140.250
+    boot_mode: DHCP
+    domains:
+      - sourceos.local
+    dhcp_proxy_id: null
+    dns_proxy_id: null
+    tftp_proxy_id: null

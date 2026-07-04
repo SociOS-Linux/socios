@@ -2,6 +2,45 @@
 socios_katello_lifecycle_dry_run: true
 socios_katello_server_url: https://foreman.example.com
 socios_katello_organization: SourceOS
+socios_katello_content_view_promote_from_lifecycle_environment: Library
+socios_katello_receipt_dir: /var/lib/socios/sourceos
+socios_katello_lifecycle_receipt_path: "{{ socios_katello_receipt_dir }}/katello-lifecycle-receipt.json"
+socios_katello_lifecycle_receipt_signing_enabled: false
+socios_katello_lifecycle_receipt_signing_provider: cosign
+socios_katello_lifecycle_receipt_signing_identity_ref: null
+socios_katello_lifecycle_receipt_signature_path: "{{ socios_katello_lifecycle_receipt_path }}.sig"
+socios_katello_lifecycle_receipt_signature_metadata_path: "{{ socios_katello_lifecycle_receipt_path }}.signature.json"
+# --- cosign signing identity (fail-closed when neither is configured) ---
+# Identity mode: "keyless" uses cosign keyless OIDC (requires an OIDC token in
+# SIGSTORE_ID_TOKEN / ACTIONS_ID_TOKEN_REQUEST_TOKEN / SOCIOS_KATELLO_COSIGN_OIDC_TOKEN);
+# any other value falls back to the configured key. Resolved from this var first,
+# else the SOCIOS_KATELLO_COSIGN_IDENTITY env var.
+socios_katello_lifecycle_receipt_signing_identity_mode: null
+# Configured cosign key (file path, env://VAR, or KMS ref). Resolved from this
+# var first, else the SOCIOS_KATELLO_COSIGN_KEY env var. Empty + non-keyless =>
+# fail-closed unsigned.
+socios_katello_lifecycle_receipt_signing_key: null
+# Verification identity for keyless verify-blob (ignored when a key is set).
+socios_katello_lifecycle_receipt_verify_certificate_identity: null
+socios_katello_lifecycle_receipt_verify_oidc_issuer: https://token.actions.githubusercontent.com
+# Run cosign verify-blob after signing (fail-closed: missing cosign/signature/
+# identity => not verified). Off by default to keep the seeding flow lean.
+socios_katello_lifecycle_receipt_verify_after_sign: false
+# --- Evidence-gated promotion (Track 2) ---
+# A content-view version only promotes Library->dev->qa->prod when a complete
+# ReleaseEvidenceBundle is present AND trust-chain admission allows it. Fail-closed.
+socios_katello_promotion_evidence_gate_enabled: true
+socios_katello_promotion_require_admission: true
+socios_katello_release_evidence_bundle_path: "{{ socios_katello_receipt_dir }}/release-evidence-bundle.json"
+socios_katello_promotion_admission_required_result: PASS
+# Optional external trust-chain admission hook (prophet-platform). Empty list =
+# local evidence-bundle check only. Example:
+#   ["python3", "/opt/sourceos/trust-chain/admit_release.py"]
+# It receives the bundle path as the final argv element; rc 0 + stdout containing
+# "allowed" is required to admit promotion.
+socios_katello_trust_chain_admission_command: []
+socios_katello_activation_key_verify_overrides: true
+socios_katello_activation_key_product_content_access_mode_all: true
 socios_katello_lifecycle_environments:
   - name: dev
     prior: Library
@@ -24,11 +63,32 @@ socios_katello_activation_keys:
     lifecycle_environment: dev
     content_view: sourceos-workstation
     description: Development enrollment key for SourceOS Workstation
+    content_overrides:
+      - content_label: sourceos-live-iso
+        override_name: enabled
+        value: true
+      - content_label: sourceos-config-bundles
+        override_name: enabled
+        value: true
   - name: sourceos-workstation-qa
     lifecycle_environment: qa
     content_view: sourceos-workstation
     description: QA enrollment key for SourceOS Workstation
+    content_overrides:
+      - content_label: sourceos-live-iso
+        override_name: enabled
+        value: true
+      - content_label: sourceos-config-bundles
+        override_name: enabled
+        value: true
   - name: sourceos-workstation-prod
     lifecycle_environment: prod
     content_view: sourceos-workstation
     description: Production enrollment key for SourceOS Workstation
+    content_overrides:
+      - content_label: sourceos-live-iso
+        override_name: enabled
+        value: true
+      - content_label: sourceos-config-bundles
+        override_name: enabled
+        value: true

@@ -1,0 +1,56 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: record-sourceos-artifact-build
+spec:
+  description: >-
+    Record SourceOS build artifact metadata after an external or upstream build step
+    produces artifacts. This task validates expected artifact paths, computes hashes,
+    and emits an artifact-build receipt without claiming artifact truth.
+  params:
+    - name: materializationReceiptPath
+      type: string
+      default: .workstation/reports/sourceos/build-request-materialization.json
+    - name: artifactPaths
+      type: string
+      description: Space-separated artifact paths to record.
+    - name: buildSystemRef
+      type: string
+      default: sourceos://build-system/external
+    - name: receiptPath
+      type: string
+      default: .workstation/reports/sourceos/artifact-build-receipt.json
+  workspaces:
+    - name: source
+      description: Workspace containing materialization receipt and artifacts.
+  steps:
+    - name: record
+      image: docker.io/library/busybox:latest
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -eu
+        test -f "$(params.materializationReceiptPath)"
+        mkdir -p "$(dirname "$(params.receiptPath)")"
+        artifacts_json=""
+        for artifact in $(params.artifactPaths); do
+          test -f "$artifact"
+          size="$(wc -c < "$artifact" | tr -d ' ')"
+          hash="$(sha256sum "$artifact" | awk '{print $1}')"
+          entry="{\"path\":\"$artifact\",\"sha256\":\"$hash\",\"sizeBytes\":$size}"
+          if [ -z "$artifacts_json" ]; then
+            artifacts_json="$entry"
+          else
+            artifacts_json="$artifacts_json,$entry"
+          fi
+        done
+        cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SourceOSArtifactBuildReceipt",
+          "materializationReceiptPath": "$(params.materializationReceiptPath)",
+          "buildSystemRef": "$(params.buildSystemRef)",
+          "artifacts": [${artifacts_json}],
+          "receiptPath": "$(params.receiptPath)"
+        }
+        JSON

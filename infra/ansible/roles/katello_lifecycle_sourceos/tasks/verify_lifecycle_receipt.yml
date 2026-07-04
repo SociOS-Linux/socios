@@ -1,0 +1,108 @@
+---
+# Verify a previously cosign-signed KatelloLifecycleReceipt.
+#
+# Mirror of sign_lifecycle_receipt.yml: keyless OIDC identity (cosign
+# verify-blob with --certificate-identity / --certificate-oidc-issuer) else a
+# configured key (--key). Fail-closed: an unsigned receipt, an absent cosign
+# binary, or no usable verification identity is treated as NOT verified.
+
+- name: Validate lifecycle receipt verification provider
+  ansible.builtin.assert:
+    that:
+      - socios_katello_lifecycle_receipt_signing_provider in ['cosign']
+    fail_msg: "Unsupported lifecycle receipt signing provider: {{ socios_katello_lifecycle_receipt_signing_provider }}"
+
+- name: Locate the cosign binary (verify)
+  ansible.builtin.command:
+    argv:
+      - command
+      - -v
+      - cosign
+  register: socios_katello_cosign_verify_which
+  changed_when: false
+  failed_when: false
+
+- name: Stat receipt and signature
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ socios_katello_lifecycle_receipt_path }}"
+    - "{{ socios_katello_lifecycle_receipt_signature_path }}"
+  register: socios_katello_verify_stats
+
+- name: Resolve effective cosign verification key/identity (var override, else env)
+  ansible.builtin.set_fact:
+    socios_katello_cosign_verify_key_effective: >-
+      {{ socios_katello_lifecycle_receipt_signing_key
+         | default(lookup('env', 'SOCIOS_KATELLO_COSIGN_KEY'), true) }}
+    socios_katello_cosign_verify_identity_mode_effective: >-
+      {{ socios_katello_lifecycle_receipt_signing_identity_mode
+         | default(lookup('env', 'SOCIOS_KATELLO_COSIGN_IDENTITY'), true)
+         | default('', true) }}
+
+- name: Default verification to NOT verified (fail-closed)
+  ansible.builtin.set_fact:
+    socios_katello_lifecycle_receipt_verified: false
+    socios_katello_lifecycle_receipt_verify_reason: "not-evaluated"
+
+- name: Mark not-verified when cosign or artifacts are missing (fail-closed)
+  ansible.builtin.set_fact:
+    socios_katello_lifecycle_receipt_verify_reason: >-
+      {{ 'cosign-binary-not-found'
+         if (socios_katello_cosign_verify_which.rc != 0)
+         else 'signature-or-receipt-missing' }}
+  when: >-
+    (socios_katello_cosign_verify_which.rc != 0)
+    or (not (socios_katello_verify_stats.results[0].stat.exists | default(false)))
+    or (not (socios_katello_verify_stats.results[1].stat.exists | default(false)))
+
+- name: Run cosign verify-blob
+  when:
+    - socios_katello_cosign_verify_which.rc == 0
+    - socios_katello_verify_stats.results[0].stat.exists | default(false)
+    - socios_katello_verify_stats.results[1].stat.exists | default(false)
+  block:
+    - name: Build cosign verify-blob argv
+      ansible.builtin.set_fact:
+        socios_katello_cosign_verify_argv: >-
+          {{ ['cosign', 'verify-blob',
+              '--signature', socios_katello_lifecycle_receipt_signature_path]
+             + (['--key', socios_katello_cosign_verify_key_effective]
+                if (socios_katello_cosign_verify_key_effective | length > 0)
+                else (['--certificate-identity', socios_katello_lifecycle_receipt_verify_certificate_identity,
+                       '--certificate-oidc-issuer', socios_katello_lifecycle_receipt_verify_oidc_issuer]
+                      if (socios_katello_lifecycle_receipt_verify_certificate_identity | default('', true) | length > 0)
+                      else []))
+             + [socios_katello_lifecycle_receipt_path] }}
+
+    - name: Assert a verification identity is configured (fail-closed)
+      ansible.builtin.assert:
+        that:
+          - >-
+            (socios_katello_cosign_verify_key_effective | length > 0)
+            or (socios_katello_lifecycle_receipt_verify_certificate_identity | default('', true) | length > 0)
+        fail_msg: >-
+          No cosign verification identity configured. Set SOCIOS_KATELLO_COSIGN_KEY
+          for key-pair verification, or
+          socios_katello_lifecycle_receipt_verify_certificate_identity +
+          socios_katello_lifecycle_receipt_verify_oidc_issuer for keyless.
+
+    - name: Execute cosign verify-blob
+      ansible.builtin.command:
+        argv: "{{ socios_katello_cosign_verify_argv }}"
+      register: socios_katello_lifecycle_receipt_verify_result
+      changed_when: false
+      failed_when: false
+
+    - name: Record verification outcome
+      ansible.builtin.set_fact:
+        socios_katello_lifecycle_receipt_verified: "{{ socios_katello_lifecycle_receipt_verify_result.rc == 0 }}"
+        socios_katello_lifecycle_receipt_verify_reason: >-
+          {{ 'verified' if (socios_katello_lifecycle_receipt_verify_result.rc == 0)
+             else 'cosign-verify-failed' }}
+
+- name: Report lifecycle receipt verification decision
+  ansible.builtin.debug:
+    msg:
+      - "Lifecycle receipt verified: {{ socios_katello_lifecycle_receipt_verified | bool }}"
+      - "Reason: {{ socios_katello_lifecycle_receipt_verify_reason }}"

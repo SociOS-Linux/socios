@@ -1,0 +1,43 @@
+{
+  "id": "urn:srcos:skill:fedora-atomic.flathub-remote-add",
+  "type": "SkillManifest",
+  "specVersion": "2.0.0",
+  "name": "fedora-atomic.flathub-remote-add",
+  "version": "0.1.0",
+  "entryDoc": "skills/fedora-atomic/flathub-remote-add/SKILL.md",
+  "description": "Adds the Flathub Flatpak remote on Fedora Atomic systems in an idempotent, auditable way.",
+  "activationRules": {
+    "commands": [
+      "flathub.setup",
+      "flatpak.remote.add",
+      "fedora.atomic.flathub"
+    ],
+    "filePatterns": [],
+    "intentTags": [
+      "os.bootstrap",
+      "fedora-atomic",
+      "flatpak"
+    ]
+  },
+  "requires": {
+    "binaries": [
+      "flatpak"
+    ],
+    "anyBins": [],
+    "tools": []
+  },
+  "policyBindings": [
+    "urn:srcos:policy:socios.optin.signed-intent"
+  ],
+  "artifactOutputs": [
+    "artifact:stdout",
+    "artifact:receipt"
+  ],
+  "reviewMode": false,
+  "allowShellExecution": true,
+  "protectedPaths": [
+    "/etc",
+    "/usr",
+    "/boot"
+  ]
+}

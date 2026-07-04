@@ -1,0 +1,26 @@
+apiVersion: socios.sourceos.ai/v0
+kind: ImagePromotionPolicy
+metadata:
+  name: sourceos-smoke-runner
+spec:
+  sourceImageRef: quay.io/socios/sourceos-smoke-runner:dev
+  targetImageRef: quay.io/socios/sourceos-smoke-runner:release-candidate
+  promotionMode: manual
+  promotionEnabledByDefault: false
+  requiredEvidence:
+    - .workstation/reports/images/sourceos-smoke-runner-build.json
+    - .workstation/reports/sbom/sourceos-smoke-runner.spdx.json
+    - .workstation/reports/scans/sourceos-smoke-runner-grype.json
+    - .workstation/reports/provenance/sourceos-smoke-runner-provenance.json
+    - .workstation/reports/evidence/sourceos-smoke-runner-evidence.json
+  requiredPolicyChecks:
+    - base-image-digest-pinned
+    - sbom-present
+    - scanner-report-present
+    - provenance-present
+    - evidence-bundle-present
+  receiptPath: .workstation/reports/promotion/sourceos-smoke-runner-promotion.json
+  notes:
+    - Promotion is disabled by default.
+    - Release-grade promotion requires a verified base image digest and approved registry target.
+    - Registry copy implementation may be replaced by the final SourceOS/SociOS release publisher.

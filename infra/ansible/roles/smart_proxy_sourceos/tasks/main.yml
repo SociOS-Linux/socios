@@ -1,0 +1,363 @@
+---
+- name: Assert supported Smart Proxy substrate
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - (ansible_distribution_major_version | int) >= 9
+      - ansible_architecture in ['x86_64', 'amd64']
+    fail_msg: "SourceOS Smart Proxy hosts should run on dedicated EL9 x86_64-class systems."
+
+- name: Preview SourceOS Smart Proxy cert archive generation command
+  ansible.builtin.debug:
+    msg:
+      delegate_to: "{{ socios_smart_proxy_cert_archive_parent_host }}"
+      argv:
+        - foreman-proxy-certs-generate
+        - --foreman-proxy-fqdn
+        - "{{ socios_smart_proxy_servername }}"
+        - --certs-tar
+        - "{{ socios_smart_proxy_cert_archive_parent_path }}"
+  when:
+    - socios_smart_proxy_dry_run
+    - socios_smart_proxy_cert_archive_generate_on_parent
+
+- name: Generate SourceOS Smart Proxy cert archive on parent Foreman host
+  ansible.builtin.command:
+    argv:
+      - foreman-proxy-certs-generate
+      - --foreman-proxy-fqdn
+      - "{{ socios_smart_proxy_servername }}"
+      - --certs-tar
+      - "{{ socios_smart_proxy_cert_archive_parent_path }}"
+  delegate_to: "{{ socios_smart_proxy_cert_archive_parent_host }}"
+  register: socios_smart_proxy_cert_archive_generate_result
+  changed_when: true
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_cert_archive_generate_on_parent
+
+- name: Fetch SourceOS Smart Proxy cert archive from parent Foreman host
+  ansible.builtin.fetch:
+    src: "{{ socios_smart_proxy_cert_archive_parent_path }}"
+    dest: "{{ socios_smart_proxy_cert_archive_local_tmp }}"
+    flat: true
+  delegate_to: "{{ socios_smart_proxy_cert_archive_parent_host }}"
+  register: socios_smart_proxy_cert_archive_fetch_result
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_cert_archive_auto_retrieve
+
+- name: Copy SourceOS Smart Proxy cert archive onto proxy host
+  ansible.builtin.copy:
+    src: "{{ socios_smart_proxy_cert_archive_local_tmp }}"
+    dest: "{{ socios_smart_proxy_certs_tar_path }}"
+    mode: "0600"
+  register: socios_smart_proxy_cert_archive_copy_result
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_cert_archive_auto_retrieve
+
+- name: Check SourceOS Smart Proxy cert tarball presence
+  ansible.builtin.stat:
+    path: "{{ socios_smart_proxy_certs_tar_path }}"
+  register: socios_smart_proxy_certs_tar
+
+- name: Explain Smart Proxy cert tarball requirement
+  ansible.builtin.debug:
+    msg:
+      - "Smart Proxy certificate tarball is required before non-dry-run installation."
+      - "{{ socios_smart_proxy_certs_source_hint }}"
+      - "Expected path: {{ socios_smart_proxy_certs_tar_path }}"
+  when:
+    - socios_smart_proxy_dry_run
+    - not socios_smart_proxy_certs_tar.stat.exists
+
+- name: Require Smart Proxy cert tarball in non-dry-run mode
+  ansible.builtin.assert:
+    that:
+      - socios_smart_proxy_certs_tar.stat.exists
+    fail_msg: "Missing Smart Proxy cert tarball at {{ socios_smart_proxy_certs_tar_path }}. Generate it on the parent Foreman/Katello host and copy it here."
+  when: not socios_smart_proxy_dry_run
+
+- name: Show SourceOS Smart Proxy desired feature posture
+  ansible.builtin.debug:
+    msg:
+      servername: "{{ socios_smart_proxy_servername }}"
+      parent_foreman_url: "{{ socios_smart_proxy_parent_foreman_url }}"
+      organization: "{{ socios_smart_proxy_organization }}"
+      location: "{{ socios_smart_proxy_location }}"
+      features: "{{ socios_smart_proxy_features }}"
+      expected_features: "{{ socios_smart_proxy_expected_features }}"
+      verify_features: "{{ socios_smart_proxy_verify_features }}"
+      dhcp: "{{ socios_smart_proxy_enable_dhcp }}"
+      dns: "{{ socios_smart_proxy_enable_dns }}"
+      tftp: "{{ socios_smart_proxy_enable_tftp }}"
+      httpboot: "{{ socios_smart_proxy_enable_httpboot }}"
+      templates: "{{ socios_smart_proxy_enable_templates }}"
+      content: "{{ socios_smart_proxy_enable_content }}"
+      content_sync_policy: "{{ socios_smart_proxy_content_sync_policy }}"
+      certs_tar_path: "{{ socios_smart_proxy_certs_tar_path }}"
+      certs_tar_exists: "{{ socios_smart_proxy_certs_tar.stat.exists }}"
+      cert_archive_auto_retrieve: "{{ socios_smart_proxy_cert_archive_auto_retrieve }}"
+      cert_archive_generate_on_parent: "{{ socios_smart_proxy_cert_archive_generate_on_parent }}"
+      cert_archive_parent_host: "{{ socios_smart_proxy_cert_archive_parent_host }}"
+      cert_archive_parent_path: "{{ socios_smart_proxy_cert_archive_parent_path }}"
+      network_bindings_enabled: "{{ socios_smart_proxy_network_bindings_enabled }}"
+      auto_discover_proxy_ids: "{{ socios_smart_proxy_auto_discover_proxy_ids }}"
+      domains: "{{ socios_smart_proxy_domains }}"
+      subnets: "{{ socios_smart_proxy_subnets }}"
+
+- name: Explain dry-run posture for Smart Proxy scaffold
+  ansible.builtin.debug:
+    msg:
+      - "Dry-run mode enabled; Smart Proxy installer command is not being executed."
+      - "Set socios_smart_proxy_dry_run=false after installer flags and certificates are pinned."
+  when: socios_smart_proxy_dry_run
+
+- name: Preview SourceOS Smart Proxy installer command
+  ansible.builtin.debug:
+    msg:
+      argv:
+        - foreman-installer
+        - --scenario
+        - foreman-proxy-content
+        - --certs-tar
+        - "{{ socios_smart_proxy_certs_tar_path }}"
+        - --foreman-proxy-register-in-foreman
+        - true
+        - --foreman-proxy-foreman-base-url
+        - "{{ socios_smart_proxy_parent_foreman_url }}"
+        - --foreman-proxy-tftp
+        - "{{ socios_smart_proxy_enable_tftp | string | lower }}"
+        - --foreman-proxy-templates
+        - "{{ socios_smart_proxy_enable_templates | string | lower }}"
+  when: socios_smart_proxy_dry_run
+
+- name: Run SourceOS Smart Proxy installer command
+  ansible.builtin.command:
+    argv:
+      - foreman-installer
+      - --scenario
+      - foreman-proxy-content
+      - --certs-tar
+      - "{{ socios_smart_proxy_certs_tar_path }}"
+      - --foreman-proxy-register-in-foreman
+      - true
+      - --foreman-proxy-foreman-base-url
+      - "{{ socios_smart_proxy_parent_foreman_url }}"
+      - --foreman-proxy-tftp
+      - "{{ socios_smart_proxy_enable_tftp | string | lower }}"
+      - --foreman-proxy-templates
+      - "{{ socios_smart_proxy_enable_templates | string | lower }}"
+  register: socios_smart_proxy_installer_result
+  when: not socios_smart_proxy_dry_run
+
+- name: Verify SourceOS Smart Proxy registration in Foreman
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_smart_proxy_parent_foreman_url }}"
+      - proxy
+      - list
+      - --search
+      - "name = {{ socios_smart_proxy_servername }}"
+      - --fields
+      - Id,Name,Url
+      - --csv
+  register: socios_smart_proxy_registration_check
+  changed_when: false
+  failed_when: false
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_registration_verify
+
+- name: Derive registered SourceOS Smart Proxy ID
+  ansible.builtin.set_fact:
+    socios_smart_proxy_discovered_proxy_id: "{{ (socios_smart_proxy_registration_check.stdout_lines[1].split(',')[0]) | trim }}"
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_registration_verify
+    - socios_smart_proxy_auto_discover_proxy_ids
+    - socios_smart_proxy_registration_check.stdout_lines is defined
+    - socios_smart_proxy_registration_check.stdout_lines | length > 1
+
+- name: Show discovered SourceOS Smart Proxy ID
+  ansible.builtin.debug:
+    msg:
+      discovered_proxy_id: "{{ socios_smart_proxy_discovered_proxy_id | default(None) }}"
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_auto_discover_proxy_ids
+
+- name: Inspect SourceOS Smart Proxy features
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_smart_proxy_parent_foreman_url }}"
+      - proxy
+      - info
+      - --id
+      - "{{ socios_smart_proxy_discovered_proxy_id }}"
+  register: socios_smart_proxy_info
+  changed_when: false
+  failed_when: false
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_verify_features
+    - socios_smart_proxy_discovered_proxy_id is defined
+
+- name: Verify SourceOS Smart Proxy expected features
+  ansible.builtin.assert:
+    that:
+      - item | lower in (socios_smart_proxy_info.stdout | default('') | lower)
+    fail_msg: "Expected Smart Proxy feature '{{ item }}' not found in hammer proxy info output for {{ socios_smart_proxy_servername }}."
+  loop: "{{ socios_smart_proxy_expected_features }}"
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_verify_features
+    - socios_smart_proxy_info is defined
+
+- name: Check SourceOS Smart Proxy domains
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_smart_proxy_parent_foreman_url }}"
+      - domain
+      - list
+      - --search
+      - "name = {{ item.name }}"
+      - --fields
+      - Id
+      - --csv
+  loop: "{{ socios_smart_proxy_domains }}"
+  register: socios_smart_proxy_domain_checks
+  changed_when: false
+  failed_when: false
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_network_bindings_enabled
+
+- name: Create SourceOS Smart Proxy domains when missing
+  ansible.builtin.command:
+    argv: >-
+      {{ [
+        'hammer',
+        '--server', socios_smart_proxy_parent_foreman_url,
+        'domain', 'create',
+        '--name', item.name,
+        '--description', (item.description | default('SourceOS provisioning domain'))
+      ] + ((socios_smart_proxy_organization is not none and socios_smart_proxy_organization | length > 0) | ternary(['--organizations', socios_smart_proxy_organization], []))
+        + ((socios_smart_proxy_location is not none and socios_smart_proxy_location | length > 0) | ternary(['--locations', socios_smart_proxy_location], [])) }}
+  loop: "{{ socios_smart_proxy_domains }}"
+  loop_control:
+    extended: true
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_network_bindings_enabled
+    - socios_smart_proxy_domain_checks.results[ansible_loop.index0].stdout_lines | length <= 1
+
+- name: Check SourceOS Smart Proxy subnets
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_smart_proxy_parent_foreman_url }}"
+      - subnet
+      - list
+      - --search
+      - "name = {{ item.name }}"
+      - --fields
+      - Id
+      - --csv
+  loop: "{{ socios_smart_proxy_subnets }}"
+  register: socios_smart_proxy_subnet_checks
+  changed_when: false
+  failed_when: false
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_network_bindings_enabled
+
+- name: Create SourceOS Smart Proxy subnets when missing
+  ansible.builtin.command:
+    argv: >-
+      {{ [
+        'hammer',
+        '--server', socios_smart_proxy_parent_foreman_url,
+        'subnet', 'create',
+        '--name', item.name,
+        '--description', (item.description | default('SourceOS provisioning subnet')),
+        '--network', item.network,
+        '--mask', item.mask,
+        '--gateway', item.gateway,
+        '--ipam', item.ipam,
+        '--boot-mode', item.boot_mode,
+        '--organizations', socios_smart_proxy_organization,
+        '--locations', socios_smart_proxy_location
+      ] + ((item.dns_primary is not none and item.dns_primary | length > 0) | ternary(['--dns-primary', item.dns_primary], []))
+        + ((item.dns_secondary is not none and item.dns_secondary | length > 0) | ternary(['--dns-secondary', item.dns_secondary], []))
+        + ((item['from'] is defined and item['from'] is not none and item['from'] | length > 0) | ternary(['--from', item['from']], []))
+        + ((item.to is defined and item.to is not none and item.to | length > 0) | ternary(['--to', item.to], []))
+        + ((item.domains is defined and item.domains | length > 0) | ternary(['--domains', (item.domains | join(','))], []))
+        + ((item.dhcp_proxy_id is not none) | ternary(['--dhcp-id', item.dhcp_proxy_id | string], ((socios_smart_proxy_enable_dhcp and socios_smart_proxy_auto_discover_proxy_ids and socios_smart_proxy_discovered_proxy_id is defined) | ternary(['--dhcp-id', socios_smart_proxy_discovered_proxy_id | string], []))))
+        + ((item.dns_proxy_id is not none) | ternary(['--dns-id', item.dns_proxy_id | string], ((socios_smart_proxy_enable_dns and socios_smart_proxy_auto_discover_proxy_ids and socios_smart_proxy_discovered_proxy_id is defined) | ternary(['--dns-id', socios_smart_proxy_discovered_proxy_id | string], []))))
+        + ((item.tftp_proxy_id is not none) | ternary(['--tftp-id', item.tftp_proxy_id | string], ((socios_smart_proxy_enable_tftp and socios_smart_proxy_auto_discover_proxy_ids and socios_smart_proxy_discovered_proxy_id is defined) | ternary(['--tftp-id', socios_smart_proxy_discovered_proxy_id | string], [])))) }}
+  loop: "{{ socios_smart_proxy_subnets }}"
+  loop_control:
+    extended: true
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_network_bindings_enabled
+    - socios_smart_proxy_subnet_checks.results[ansible_loop.index0].stdout_lines | length <= 1
+
+- name: Ensure SourceOS Smart Proxy receipt directory exists
+  ansible.builtin.file:
+    path: "{{ socios_smart_proxy_receipt_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Emit SourceOS Smart Proxy scaffold receipt
+  ansible.builtin.copy:
+    dest: "{{ socios_smart_proxy_receipt_path }}"
+    mode: "0640"
+    content: |
+      {{ {
+        'apiVersion': 'socios.sourceos.ai/v0',
+        'kind': 'SmartProxyReceipt',
+        'servername': socios_smart_proxy_servername,
+        'parentForemanUrl': socios_smart_proxy_parent_foreman_url,
+        'organization': socios_smart_proxy_organization,
+        'location': socios_smart_proxy_location,
+        'features': socios_smart_proxy_features,
+        'expectedFeatures': socios_smart_proxy_expected_features,
+        'verifyFeatures': socios_smart_proxy_verify_features,
+        'contentSyncPolicy': socios_smart_proxy_content_sync_policy,
+        'certsTarPath': socios_smart_proxy_certs_tar_path,
+        'certsTarExists': socios_smart_proxy_certs_tar.stat.exists,
+        'certArchiveAutoRetrieve': socios_smart_proxy_cert_archive_auto_retrieve,
+        'certArchiveGenerateOnParent': socios_smart_proxy_cert_archive_generate_on_parent,
+        'certArchiveParentHost': socios_smart_proxy_cert_archive_parent_host,
+        'certArchiveParentPath': socios_smart_proxy_cert_archive_parent_path,
+        'certArchiveGenerateResult': (socios_smart_proxy_cert_archive_generate_result | default({})),
+        'certArchiveFetchResult': (socios_smart_proxy_cert_archive_fetch_result | default({})),
+        'certArchiveCopyResult': (socios_smart_proxy_cert_archive_copy_result | default({})),
+        'registrationVerify': socios_smart_proxy_registration_verify,
+        'autoDiscoverProxyIds': socios_smart_proxy_auto_discover_proxy_ids,
+        'discoveredProxyId': (socios_smart_proxy_discovered_proxy_id | default(None)),
+        'registrationCheck': (socios_smart_proxy_registration_check.stdout_lines | default([])),
+        'proxyInfo': (socios_smart_proxy_info.stdout_lines | default([])),
+        'domainChecks': (socios_smart_proxy_domain_checks.results | default([])),
+        'subnetChecks': (socios_smart_proxy_subnet_checks.results | default([])),
+        'domains': socios_smart_proxy_domains,
+        'subnets': socios_smart_proxy_subnets,
+        'installerResultRc': (socios_smart_proxy_installer_result.rc | default(None)),
+        'dryRun': socios_smart_proxy_dry_run
+      } | to_nice_json }}
+
+- name: Attest SourceOS Smart Proxy receipt when enabled
+  ansible.builtin.include_tasks: attest_smart_proxy_receipt.yml
+  when:
+    - not socios_smart_proxy_dry_run
+    - socios_smart_proxy_receipt_attestation_enabled

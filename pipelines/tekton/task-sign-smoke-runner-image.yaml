@@ -1,0 +1,57 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: sign-smoke-runner-image
+spec:
+  description: >-
+    Optional signing scaffold for the SourceOS smoke-runner image.
+  params:
+    - name: signingImage
+      type: string
+      description: Image containing cosign.
+      default: gcr.io/projectsigstore/cosign:latest
+    - name: imageRef
+      type: string
+      description: Image ref to sign.
+      default: quay.io/socios/sourceos-smoke-runner:dev
+    - name: enabled
+      type: string
+      description: Whether signing should run.
+      default: "false"
+    - name: receiptPath
+      type: string
+      description: Signing receipt output path.
+      default: .workstation/reports/attest/sourceos-smoke-runner-signature.json
+  workspaces:
+    - name: source
+      description: Workspace for signing receipt output.
+  steps:
+    - name: sign
+      image: $(params.signingImage)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+        mkdir -p "$(dirname "$(params.receiptPath)")"
+        if [ "$(params.enabled)" != "true" ]; then
+          cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SmokeRunnerImageSigningReceipt",
+          "imageRef": "$(params.imageRef)",
+          "enabled": false,
+          "status": "skipped"
+        }
+        JSON
+          exit 0
+        fi
+        cosign sign --yes "$(params.imageRef)"
+        cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SmokeRunnerImageSigningReceipt",
+          "imageRef": "$(params.imageRef)",
+          "enabled": true,
+          "status": "signed"
+        }
+        JSON

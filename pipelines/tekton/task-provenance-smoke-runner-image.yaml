@@ -1,0 +1,45 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: provenance-smoke-runner-image
+spec:
+  description: >-
+    Emit a minimal provenance receipt for the SourceOS smoke-runner image lane.
+  params:
+    - name: imageRef
+      type: string
+      default: quay.io/socios/sourceos-smoke-runner:dev
+    - name: baseImage
+      type: string
+      default: registry.fedoraproject.org/fedora-minimal@sha256:REPLACE_WITH_VERIFIED_DIGEST
+    - name: sbomPath
+      type: string
+      default: .workstation/reports/sbom/sourceos-smoke-runner.spdx.json
+    - name: scanPath
+      type: string
+      default: .workstation/reports/scans/sourceos-smoke-runner-grype.json
+    - name: provenancePath
+      type: string
+      default: .workstation/reports/provenance/sourceos-smoke-runner-provenance.json
+  workspaces:
+    - name: source
+      description: Workspace for provenance output.
+  steps:
+    - name: provenance
+      image: docker.io/library/busybox:latest
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -eu
+        mkdir -p "$(dirname "$(params.provenancePath)")"
+        cat > "$(params.provenancePath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SmokeRunnerImageProvenance",
+          "imageRef": "$(params.imageRef)",
+          "baseImage": "$(params.baseImage)",
+          "sbomPath": "$(params.sbomPath)",
+          "scanPath": "$(params.scanPath)",
+          "provenancePath": "$(params.provenancePath)"
+        }
+        JSON

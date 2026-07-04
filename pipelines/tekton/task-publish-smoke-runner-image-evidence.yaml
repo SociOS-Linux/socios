@@ -1,0 +1,81 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: publish-smoke-runner-image-evidence
+spec:
+  description: >-
+    Check and optionally publish the SourceOS smoke-runner image evidence set.
+  params:
+    - name: enabled
+      type: string
+      default: "false"
+    - name: imageRef
+      type: string
+      default: quay.io/socios/sourceos-smoke-runner:dev
+    - name: targetCatalogRef
+      type: string
+      default: sourceos://catalog/images/sourceos-smoke-runner
+    - name: baseImageReceiptPath
+      type: string
+      default: .workstation/reports/images/sourceos-smoke-runner-base-image.json
+    - name: taskImageReceiptPath
+      type: string
+      default: .workstation/reports/images/sourceos-smoke-runner-task-images.json
+    - name: buildReceiptPath
+      type: string
+      default: .workstation/reports/images/sourceos-smoke-runner-build.json
+    - name: sbomPath
+      type: string
+      default: .workstation/reports/sbom/sourceos-smoke-runner.spdx.json
+    - name: scanPath
+      type: string
+      default: .workstation/reports/scans/sourceos-smoke-runner-grype.json
+    - name: provenancePath
+      type: string
+      default: .workstation/reports/provenance/sourceos-smoke-runner-provenance.json
+    - name: evidenceBundlePath
+      type: string
+      default: .workstation/reports/evidence/sourceos-smoke-runner-evidence.json
+    - name: receiptPath
+      type: string
+      default: .workstation/reports/publication/sourceos-smoke-runner-evidence-publication.json
+  workspaces:
+    - name: source
+      description: Workspace containing image evidence outputs.
+  steps:
+    - name: publish
+      image: docker.io/library/busybox:latest
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -eu
+        mkdir -p "$(dirname "$(params.receiptPath)")"
+        test -f "$(params.baseImageReceiptPath)"
+        test -f "$(params.taskImageReceiptPath)"
+        test -f "$(params.buildReceiptPath)"
+        test -f "$(params.sbomPath)"
+        test -f "$(params.scanPath)"
+        test -f "$(params.provenancePath)"
+        test -f "$(params.evidenceBundlePath)"
+        status="skipped"
+        if [ "$(params.enabled)" = "true" ]; then
+          status="publication-requested"
+        fi
+        cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SmokeRunnerImageEvidencePublicationReceipt",
+          "imageRef": "$(params.imageRef)",
+          "targetCatalogRef": "$(params.targetCatalogRef)",
+          "enabled": "$(params.enabled)",
+          "status": "${status}",
+          "baseImageReceiptPath": "$(params.baseImageReceiptPath)",
+          "taskImageReceiptPath": "$(params.taskImageReceiptPath)",
+          "buildReceiptPath": "$(params.buildReceiptPath)",
+          "sbomPath": "$(params.sbomPath)",
+          "scanPath": "$(params.scanPath)",
+          "provenancePath": "$(params.provenancePath)",
+          "evidenceBundlePath": "$(params.evidenceBundlePath)",
+          "receiptPath": "$(params.receiptPath)"
+        }
+        JSON

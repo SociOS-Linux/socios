@@ -1,0 +1,73 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: resolve-smoke-runner-task-image-digests
+spec:
+  description: >-
+    Resolve and record digests for task images used by the SourceOS smoke-runner
+    image pipeline.
+  params:
+    - name: resolverImage
+      type: string
+      description: Image containing skopeo.
+      default: quay.io/skopeo/stable:latest
+    - name: builderImage
+      type: string
+      default: quay.io/buildah/stable:latest
+    - name: sbomImage
+      type: string
+      default: anchore/syft:latest
+    - name: scannerImage
+      type: string
+      default: anchore/grype:latest
+    - name: attestImage
+      type: string
+      default: gcr.io/projectsigstore/cosign:latest
+    - name: publisherImage
+      type: string
+      default: quay.io/skopeo/stable:latest
+    - name: inspectorImage
+      type: string
+      default: quay.io/skopeo/stable:latest
+    - name: utilityImage
+      type: string
+      default: docker.io/library/busybox:latest
+    - name: receiptPath
+      type: string
+      default: .workstation/reports/images/sourceos-smoke-runner-task-image-digests.json
+  workspaces:
+    - name: source
+      description: Workspace for digest resolution receipt.
+  steps:
+    - name: resolve
+      image: $(params.resolverImage)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+        mkdir -p "$(dirname "$(params.receiptPath)")"
+        resolve_digest() {
+          ref="$1"
+          skopeo inspect --format '{{.Digest}}' "docker://${ref}"
+        }
+        builder_digest="$(resolve_digest "$(params.builderImage)")"
+        sbom_digest="$(resolve_digest "$(params.sbomImage)")"
+        scanner_digest="$(resolve_digest "$(params.scannerImage)")"
+        attest_digest="$(resolve_digest "$(params.attestImage)")"
+        publisher_digest="$(resolve_digest "$(params.publisherImage)")"
+        inspector_digest="$(resolve_digest "$(params.inspectorImage)")"
+        utility_digest="$(resolve_digest "$(params.utilityImage)")"
+        cat > "$(params.receiptPath)" <<JSON
+        {
+          "apiVersion": "socios.sourceos.ai/v0",
+          "kind": "SmokeRunnerTaskImageDigestReceipt",
+          "builderImage": {"ref": "$(params.builderImage)", "digest": "${builder_digest}"},
+          "sbomImage": {"ref": "$(params.sbomImage)", "digest": "${sbom_digest}"},
+          "scannerImage": {"ref": "$(params.scannerImage)", "digest": "${scanner_digest}"},
+          "attestImage": {"ref": "$(params.attestImage)", "digest": "${attest_digest}"},
+          "publisherImage": {"ref": "$(params.publisherImage)", "digest": "${publisher_digest}"},
+          "inspectorImage": {"ref": "$(params.inspectorImage)", "digest": "${inspector_digest}"},
+          "utilityImage": {"ref": "$(params.utilityImage)", "digest": "${utility_digest}"},
+          "receiptPath": "$(params.receiptPath)"
+        }
+        JSON

@@ -1,0 +1,126 @@
+---
+- name: Explain dry-run posture for Smart Proxy content policy
+  ansible.builtin.debug:
+    msg:
+      - "Dry-run mode enabled; this role records intended content placement only."
+      - "A later tranche should add the concrete content refresh command after command syntax is validated."
+  when: socios_smart_proxy_content_sync_dry_run
+
+- name: Lookup SourceOS Smart Proxy for content policy
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_smart_proxy_content_sync_server_url }}"
+      - proxy
+      - list
+      - --search
+      - "name = {{ socios_smart_proxy_content_sync_proxy_name }}"
+      - --fields
+      - Id,Name,Url
+      - --csv
+  register: socios_smart_proxy_content_sync_proxy_lookup
+  changed_when: false
+  failed_when: false
+
+- name: Derive SourceOS Smart Proxy content policy proxy id
+  ansible.builtin.set_fact:
+    socios_smart_proxy_content_sync_proxy_id: "{{ (socios_smart_proxy_content_sync_proxy_lookup.stdout_lines[1].split(',')[0]) | trim }}"
+  when:
+    - socios_smart_proxy_content_sync_proxy_lookup.stdout_lines is defined
+    - socios_smart_proxy_content_sync_proxy_lookup.stdout_lines | length > 1
+
+- name: Require SourceOS Smart Proxy lookup when verification is enabled
+  ansible.builtin.assert:
+    that:
+      - socios_smart_proxy_content_sync_proxy_id is defined
+      - socios_smart_proxy_content_sync_proxy_id | length > 0
+    fail_msg: "Unable to resolve Smart Proxy {{ socios_smart_proxy_content_sync_proxy_name }} for content placement policy."
+  when: socios_smart_proxy_content_sync_verify_proxy
+
+- name: Lookup SourceOS lifecycle environments for content policy
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_smart_proxy_content_sync_server_url }}"
+      - lifecycle-environment
+      - list
+      - --organization
+      - "{{ socios_smart_proxy_content_sync_organization }}"
+      - --search
+      - "name = {{ item }}"
+      - --fields
+      - Id,Name
+      - --csv
+  loop: "{{ socios_smart_proxy_content_sync_lifecycle_environments }}"
+  register: socios_smart_proxy_content_sync_lifecycle_lookup
+  changed_when: false
+  failed_when: false
+
+- name: Lookup SourceOS content views for content policy
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --server
+      - "{{ socios_smart_proxy_content_sync_server_url }}"
+      - content-view
+      - list
+      - --organization
+      - "{{ socios_smart_proxy_content_sync_organization }}"
+      - --search
+      - "name = {{ item }}"
+      - --fields
+      - Id,Name
+      - --csv
+  loop: "{{ socios_smart_proxy_content_sync_content_views }}"
+  register: socios_smart_proxy_content_sync_content_view_lookup
+  changed_when: false
+  failed_when: false
+
+- name: Preview SourceOS Smart Proxy content placement policy
+  ansible.builtin.debug:
+    msg:
+      proxy: "{{ socios_smart_proxy_content_sync_proxy_name }}"
+      proxy_id: "{{ socios_smart_proxy_content_sync_proxy_id | default(None) }}"
+      organization: "{{ socios_smart_proxy_content_sync_organization }}"
+      lifecycle_environments: "{{ socios_smart_proxy_content_sync_lifecycle_environments }}"
+      content_views: "{{ socios_smart_proxy_content_sync_content_views }}"
+      policy: "{{ socios_smart_proxy_content_sync_policy }}"
+      mode: "{{ socios_smart_proxy_content_sync_mode }}"
+      lifecycle_lookup: "{{ socios_smart_proxy_content_sync_lifecycle_lookup.results | default([]) }}"
+      content_view_lookup: "{{ socios_smart_proxy_content_sync_content_view_lookup.results | default([]) }}"
+
+- name: Ensure SourceOS Smart Proxy content policy receipt directory exists
+  ansible.builtin.file:
+    path: "{{ socios_smart_proxy_content_sync_receipt_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Emit SourceOS Smart Proxy content policy receipt scaffold
+  ansible.builtin.copy:
+    dest: "{{ socios_smart_proxy_content_sync_receipt_path }}"
+    mode: "0640"
+    content: |
+      {{ {
+        'apiVersion': 'socios.sourceos.ai/v0',
+        'kind': 'SmartProxyContentPolicyReceipt',
+        'serverUrl': socios_smart_proxy_content_sync_server_url,
+        'organization': socios_smart_proxy_content_sync_organization,
+        'proxyName': socios_smart_proxy_content_sync_proxy_name,
+        'proxyId': (socios_smart_proxy_content_sync_proxy_id | default(None)),
+        'policy': socios_smart_proxy_content_sync_policy,
+        'mode': socios_smart_proxy_content_sync_mode,
+        'lifecycleEnvironments': socios_smart_proxy_content_sync_lifecycle_environments,
+        'contentViews': socios_smart_proxy_content_sync_content_views,
+        'proxyLookup': (socios_smart_proxy_content_sync_proxy_lookup.stdout_lines | default([])),
+        'lifecycleLookup': (socios_smart_proxy_content_sync_lifecycle_lookup.results | default([])),
+        'contentViewLookup': (socios_smart_proxy_content_sync_content_view_lookup.results | default([])),
+        'dryRun': socios_smart_proxy_content_sync_dry_run
+      } | to_nice_json }}
+
+- name: Attest SourceOS Smart Proxy content policy receipt when enabled
+  ansible.builtin.include_tasks: attest_content_policy_receipt.yml
+  when:
+    - not socios_smart_proxy_content_sync_dry_run
+    - socios_smart_proxy_content_sync_receipt_attestation_enabled
