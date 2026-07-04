@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.socios.io/automation/dynamic-validation/scenario-set.schema.json",
+  "title": "DynamicValidationScenarioSet",
+  "description": "A set of dynamic-validation scenarios for a SourceOS image. Each scenario is a GUI/OS automation flow driven by Agent-S (simular-ai computer-use agent) inside a controller container against a DISPOSABLE guest VM. This is validation truth: it declares WHAT to exercise on a running image and WHAT evidence to record. Execution (Agent-S + the guest VM) is HOST-GATED and lives in the controller runner (tools/dynamic-validation/run.py). The recorded EvidenceBundle feeds the ReleaseEvidenceBundle consumed by the Katello evidence gate (infra/ansible/roles/katello_lifecycle_sourceos/tasks/evidence_gate.yml).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "socios.sourceos.ai/v0"
+    },
+    "kind": {
+      "type": "string",
+      "const": "DynamicValidationScenarioSet"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Stable scenario-set name, e.g. sourceos-workstation-dynamic-validation.",
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "labels": {
+          "type": "object",
+          "description": "Free-form routing labels (flavor, channel, surface).",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["targetImage", "guest", "scenarios"],
+      "properties": {
+        "targetImage": {
+          "type": "object",
+          "description": "The artifact under validation. The runner boots this in a disposable guest VM.",
+          "additionalProperties": false,
+          "required": ["artifactRef", "format"],
+          "properties": {
+            "artifactRef": {
+              "type": "string",
+              "description": "Path to the ISO/disk image to validate, relative to the workspace root or absolute."
+            },
+            "format": {
+              "type": "string",
+              "enum": ["iso", "qcow2", "raw", "metal"]
+            }
+          }
+        },
+        "guest": {
+          "type": "object",
+          "description": "Disposable guest VM profile. MUST be disposable: created fresh per run, destroyed after. The runner refuses to reuse a guest across scenario sets.",
+          "additionalProperties": false,
+          "required": ["disposable"],
+          "properties": {
+            "disposable": {
+              "type": "boolean",
+              "const": true,
+              "description": "Hard requirement: the guest is throwaway. Red-team scenarios may leave the guest in an untrusted state."
+            },
+            "memoryMiB": { "type": "integer", "minimum": 1024, "default": 4096 },
+            "cpus": { "type": "integer", "minimum": 1, "default": 2 },
+            "networkProfile": {
+              "type": "string",
+              "description": "isolated = no egress (default, safe); nat = host-NAT for network scenarios; offline = no NICs.",
+              "enum": ["isolated", "nat", "offline"],
+              "default": "isolated"
+            },
+            "snapshotBeforeRun": {
+              "type": "boolean",
+              "default": true,
+              "description": "Take a base snapshot so rollback/update and red-team scenarios can revert."
+            }
+          }
+        },
+        "scenarios": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/scenario" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "category": {
+      "type": "string",
+      "description": "Dynamic-validation category from the corpus.",
+      "enum": [
+        "boot-login-firstrun",
+        "network-storage",
+        "service-activation",
+        "rollback-update",
+        "redteam-safe-probe",
+        "blueteam-detect-contain-forensics"
+      ]
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action"],
+      "description": "One Agent-S-drivable action. The runner maps `action` to an Agent-S computer-use instruction (gui_*) or a policy-gated host/guest command (host_command / guest_command).",
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "Action verb. gui_* are computer-use (vision+grounding) actions Agent-S performs against the guest framebuffer; *_command are deterministic commands. host_command is policy-gated (see policy/dynamic-validation-host-actions.yaml).",
+          "enum": [
+            "gui_observe",
+            "gui_click",
+            "gui_type",
+            "gui_key",
+            "gui_wait_for",
+            "guest_command",
+            "host_command",
+            "screenshot",
+            "sleep"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "description": "Natural-language UI target for gui_click/gui_wait_for (grounded by Agent-S), or the command string for *_command actions."
+        },
+        "text": {
+          "type": "string",
+          "description": "Text to type (gui_type) or key chord (gui_key, e.g. 'ctrl+alt+t')."
+        },
+        "timeoutSeconds": { "type": "integer", "minimum": 1, "default": 60 },
+        "note": { "type": "string" }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Pass/fail oracle for the scenario. ALL listed conditions must hold for the scenario to PASS.",
+      "properties": {
+        "uiContains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Strings Agent-S OCR must find on-screen at the end of the flow."
+        },
+        "uiAbsent": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Strings that must NOT appear (e.g. error dialogs, crash text)."
+        },
+        "guestCommandExit": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" },
+          "description": "Map of guest command -> required exit code."
+        },
+        "serialMatches": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Regexes expected in the guest serial log (reuses the boot-smoke serial oracle)."
+        }
+      }
+    },
+    "evidence_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What the EvidenceBundle MUST carry for this scenario. The runner refuses to mark a scenario PASS unless every required artifact is present.",
+      "properties": {
+        "screenshots": {
+          "type": "string",
+          "enum": ["none", "final", "per-step", "on-failure"],
+          "default": "per-step"
+        },
+        "actionTrace": {
+          "type": "boolean",
+          "default": true,
+          "description": "Record the full ordered Agent-S action trace (instruction, grounded coordinates, result)."
+        },
+        "ocrGrounding": {
+          "type": "boolean",
+          "default": true,
+          "description": "Record OCR text + element-grounding metadata per gui action."
+        },
+        "replayRef": {
+          "type": "boolean",
+          "default": true,
+          "description": "Emit a replay reference (guest snapshot id + scenario hash) so the run is re-derivable, mirroring the reasoning-evidence ReplayPlan shape."
+        },
+        "serialLog": {
+          "type": "boolean",
+          "default": false,
+          "description": "Capture the guest serial log alongside the GUI trace."
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "steps", "expected", "evidence_requirements"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable scenario id, unique within the set.",
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "title": { "type": "string" },
+        "category": { "$ref": "#/$defs/category" },
+        "covers": {
+          "type": "array",
+          "description": "IDs of the 13 Linux image validation categories this scenario contributes to (see docs/sourceos/dynamic-validation-coverage-v0.md, e.g. 'LIV-01').",
+          "items": { "type": "string", "pattern": "^LIV-[0-9]{2}$" }
+        },
+        "safetyClass": {
+          "type": "string",
+          "description": "destructive scenarios (red-team, rollback) require guest.snapshotBeforeRun and an isolated/offline network unless network-storage explicitly needs egress.",
+          "enum": ["safe", "destructive"],
+          "default": "safe"
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/step" }
+        },
+        "expected": { "$ref": "#/$defs/expected" },
+        "evidence_requirements": { "$ref": "#/$defs/evidence_requirements" }
+      }
+    }
+  }
+}
