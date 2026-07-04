@@ -10,8 +10,8 @@ IaC or pipelines itself.
 
 Build orchestration in `socios` conforms to these canonical schema paths in `sourceos-build`:
 
-- `schemas/sourceos/build-request.v0.1.schema.json` — the `BuildRequest` contract socios emits.
-- `schemas/sourceos/build-receipt.v0.1.schema.json` — the `BuildReceipt` contract socios consumes.
+- `schemas/sourceos/build-request.v0.1.schema.json` — the `BuildRequest` contract `socios` emits.
+- `schemas/sourceos/build-receipt.v0.1.schema.json` — the `BuildReceipt` contract `socios` consumes.
 
 Example payloads: `examples/build-request.example.json`, `examples/build-receipt.example.json`.
 
