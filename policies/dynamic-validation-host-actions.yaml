@@ -1,0 +1,46 @@
+---
+# Host-action policy for the Agent-S dynamic-validation runner.
+#
+# Agent-S drives the GUI INSIDE the disposable guest VM. A small set of actions
+# instead touch the HOST (snapshot, revert, destroy the guest, attach a forensic
+# image). Those are `host_command` steps in a scenario and are POLICY-GATED here:
+# the runner refuses any host_command whose resolved verb is not on `allow`.
+# Fail-closed: anything not explicitly allowed is denied.
+#
+# This is the dynamic-validation analogue of the COSA host gate (a real build
+# needs Linux + /dev/kvm + cosa). Here, a real run needs Linux + /dev/kvm +
+# Agent-S + a disposable guest, and host_command actions additionally need an
+# allow-listed verb. The dry-run path enforces the same policy on paper so an
+# out-of-policy scenario is rejected before any VM exists.
+apiVersion: socios.sourceos.ai/v0
+kind: DynamicValidationHostActionPolicy
+metadata:
+  name: default-disposable-guest-policy
+spec:
+  # Only these host verbs may appear as the first token of a host_command target.
+  # Each is a guest-lifecycle or evidence-capture operation against the
+  # disposable guest -- never a mutation of the host or any persistent state.
+  allow:
+    - snapshot-guest        # take a guest snapshot (forensics / pre-destructive)
+    - revert-guest          # revert the guest to its base snapshot
+    - destroy-guest         # tear the guest down (always run at end of set)
+    - collect-serial        # pull the guest serial log to the evidence dir
+    - collect-screen        # pull the framebuffer / screenshot to the evidence dir
+  # Hard denials -- present so the intent is explicit even though deny is implied
+  # by the allow-list. Any of these in a host_command is a policy violation.
+  deny:
+    - rm
+    - mkfs
+    - dd
+    - mount          # host-side mounts are forbidden; mounts happen IN the guest
+    - curl
+    - wget
+    - ssh
+    - docker
+    - podman
+  # Guest network must be one of these for destructive scenarios.
+  destructiveNetworkProfiles:
+    - isolated
+    - offline
+  # The runner refuses to run if the guest is not declared disposable.
+  requireDisposableGuest: true

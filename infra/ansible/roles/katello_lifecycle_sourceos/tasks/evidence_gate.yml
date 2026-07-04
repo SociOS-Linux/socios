@@ -1,0 +1,93 @@
+---
+# Evidence-gated promotion precondition (Track 2).
+# Decides socios_katello_promotion_admitted (bool). Fail-closed: unless a complete
+# ReleaseEvidenceBundle is present (and, if configured, trust-chain admission allows),
+# promotion through lifecycle environments is withheld.
+
+- name: Default promotion admission to denied (fail-closed)
+  ansible.builtin.set_fact:
+    socios_katello_promotion_admitted: false
+    socios_katello_promotion_admission_reason: "not-evaluated"
+
+- name: Stat the ReleaseEvidenceBundle
+  ansible.builtin.stat:
+    path: "{{ socios_katello_release_evidence_bundle_path }}"
+  register: socios_release_evidence_bundle_stat
+
+- name: Fail when evidence bundle is missing and admission is required
+  ansible.builtin.fail:
+    msg: >-
+      Promotion blocked: ReleaseEvidenceBundle not found at
+      {{ socios_katello_release_evidence_bundle_path }}. Generate and place a
+      complete bundle (agent-machine generate-release-evidence) before promotion,
+      or set socios_katello_promotion_require_admission=false to allow staging without it.
+  when:
+    - socios_katello_promotion_require_admission
+    - not socios_release_evidence_bundle_stat.stat.exists
+
+- name: Note missing evidence bundle (advisory, non-required mode)
+  ansible.builtin.set_fact:
+    socios_katello_promotion_admission_reason: "evidence-bundle-missing"
+  when: not socios_release_evidence_bundle_stat.stat.exists
+
+- name: Load and validate the ReleaseEvidenceBundle
+  when: socios_release_evidence_bundle_stat.stat.exists
+  block:
+    - name: Read the ReleaseEvidenceBundle
+      ansible.builtin.slurp:
+        src: "{{ socios_katello_release_evidence_bundle_path }}"
+      register: socios_release_evidence_bundle_raw
+
+    - name: Parse the ReleaseEvidenceBundle
+      ansible.builtin.set_fact:
+        socios_release_evidence_bundle: "{{ socios_release_evidence_bundle_raw.content | b64decode | from_json }}"
+
+    - name: Assess local evidence completeness
+      ansible.builtin.set_fact:
+        socios_evidence_complete: >-
+          {{
+            (socios_release_evidence_bundle.result | default('')) == socios_katello_promotion_admission_required_result
+            and (socios_release_evidence_bundle.inputs_hash | default('')) | length > 0
+            and (socios_release_evidence_bundle.blockers | default([])) | length == 0
+          }}
+
+    - name: Run trust-chain admission hook when configured
+      ansible.builtin.command:
+        argv: "{{ socios_katello_trust_chain_admission_command + [socios_katello_release_evidence_bundle_path] }}"
+      register: socios_trust_chain_admission
+      changed_when: false
+      failed_when: false
+      when: socios_katello_trust_chain_admission_command | length > 0
+
+    - name: Compute admission decision (local completeness AND optional trust-chain allow)
+      ansible.builtin.set_fact:
+        socios_katello_promotion_admitted: >-
+          {{
+            (socios_evidence_complete | bool)
+            and (
+              (socios_katello_trust_chain_admission_command | length == 0)
+              or (
+                (socios_trust_chain_admission.rc | default(1)) == 0
+                and 'allowed' in ((socios_trust_chain_admission.stdout | default('')) | lower)
+              )
+            )
+          }}
+        socios_katello_promotion_admission_reason: >-
+          {{ 'admitted' if (socios_evidence_complete | bool) else 'evidence-incomplete-or-blocked' }}
+
+- name: Fail when admission denied and required
+  ansible.builtin.fail:
+    msg: >-
+      Promotion blocked by evidence gate ({{ socios_katello_promotion_admission_reason }}).
+      ReleaseEvidenceBundle must report result={{ socios_katello_promotion_admission_required_result }},
+      a non-empty inputs_hash, zero blockers{{ ', and trust-chain admission=allowed'
+      if (socios_katello_trust_chain_admission_command | length > 0) else '' }}.
+  when:
+    - socios_katello_promotion_require_admission
+    - not (socios_katello_promotion_admitted | bool)
+
+- name: Report promotion admission decision
+  ansible.builtin.debug:
+    msg:
+      - "Promotion admitted: {{ socios_katello_promotion_admitted | bool }}"
+      - "Reason: {{ socios_katello_promotion_admission_reason }}"

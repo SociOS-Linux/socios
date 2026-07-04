@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.socios.io/automation/personalization-orchestration.schema.json",
+  "title": "PersonalizationOrchestration",
+  "description": "Opt-in Socios orchestration contract for per-user model personalization workflows. This references a valid governance contract and signed user intent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "orchestrationId",
+    "governanceContractRef",
+    "signedIntentRef",
+    "proofOfLifeRef",
+    "subject",
+    "workflow",
+    "inputs",
+    "policy",
+    "evidence"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "v0.1" },
+    "kind": { "const": "PersonalizationOrchestration" },
+    "orchestrationId": { "type": "string", "pattern": "^urn:socios:personalization-orchestration:" },
+    "governanceContractRef": { "type": "string" },
+    "signedIntentRef": { "type": "string" },
+    "proofOfLifeRef": { "type": "string" },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["userRef", "deviceRef", "workspaceRef"],
+      "properties": {
+        "userRef": { "type": "string" },
+        "deviceRef": { "type": "string" },
+        "workspaceRef": { "type": "string" },
+        "tenantRef": { "type": ["string", "null"] }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "steps", "agentPlaneRequired"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["dry-run", "prepare", "adapt", "evaluate", "promote-personal", "revoke"] },
+        "steps": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "agentPlaneRequired": { "type": "boolean" },
+        "workstationContractRef": { "type": ["string", "null"] },
+        "jobRef": { "type": ["string", "null"] }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowedSourceRefs", "deniedSourceClasses", "baseModelRef"],
+      "properties": {
+        "allowedSourceRefs": { "type": "array", "items": { "type": "string" } },
+        "deniedSourceClasses": { "type": "array", "items": { "type": "string" } },
+        "baseModelRef": { "type": "string" },
+        "outputArtifactRef": { "type": ["string", "null"] }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["offByDefault", "requiresSignedIntent", "requiresProofOfLife", "localOnlyDefault", "promotionRequiresLedgerApproval"],
+      "properties": {
+        "offByDefault": { "const": true },
+        "requiresSignedIntent": { "const": true },
+        "requiresProofOfLife": { "const": true },
+        "localOnlyDefault": { "type": "boolean" },
+        "promotionRequiresLedgerApproval": { "const": true },
+        "allowExternalCompute": { "type": "boolean", "default": false },
+        "allowRawAppStores": { "type": "boolean", "default": false },
+        "allowWholeHomeIngestion": { "type": "boolean", "default": false }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["emitDatasetLineage", "emitPersonalizationReceipt", "emitEvalReceipt", "emitPromotionOrRevocationReceipt"],
+      "properties": {
+        "emitDatasetLineage": { "type": "boolean" },
+        "emitPersonalizationReceipt": { "type": "boolean" },
+        "emitEvalReceipt": { "type": "boolean" },
+        "emitPromotionOrRevocationReceipt": { "type": "boolean" },
+        "ledgerRef": { "type": "string" }
+      }
+    }
+  }
+}

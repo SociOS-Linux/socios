@@ -1,0 +1,74 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: sourceos-build-artifact-receipt
+spec:
+  description: >-
+    Materialize a SourceOS build request and record already-produced build artifacts
+    with hashes and sizes. This pipeline does not mutate SourceOS artifact truth.
+  params:
+    - name: contentSpecRef
+      type: string
+    - name: buildRequestRef
+      type: string
+    - name: requestedBy
+      type: string
+    - name: artifactPaths
+      type: string
+    - name: channel
+      type: string
+      default: dev
+    - name: architecture
+      type: string
+      default: x86_64
+    - name: buildSystemRef
+      type: string
+      default: sourceos://build-system/external
+    - name: overlayRefs
+      type: string
+      default: ""
+    - name: enrollmentProfileRef
+      type: string
+      default: ""
+    - name: agentplaneBundleRef
+      type: string
+      default: ""
+  workspaces:
+    - name: source
+  tasks:
+    - name: materialize-sourceos-build-request
+      taskRef:
+        name: materialize-sourceos-build-request
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: contentSpecRef
+          value: $(params.contentSpecRef)
+        - name: buildRequestRef
+          value: $(params.buildRequestRef)
+        - name: requestedBy
+          value: $(params.requestedBy)
+        - name: channel
+          value: $(params.channel)
+        - name: architecture
+          value: $(params.architecture)
+        - name: overlayRefs
+          value: $(params.overlayRefs)
+        - name: enrollmentProfileRef
+          value: $(params.enrollmentProfileRef)
+        - name: agentplaneBundleRef
+          value: $(params.agentplaneBundleRef)
+
+    - name: record-sourceos-artifact-build
+      runAfter: [materialize-sourceos-build-request]
+      taskRef:
+        name: record-sourceos-artifact-build
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: artifactPaths
+          value: $(params.artifactPaths)
+        - name: buildSystemRef
+          value: $(params.buildSystemRef)

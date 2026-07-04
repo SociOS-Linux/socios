@@ -1,0 +1,33 @@
+apiVersion: socios.sourceos.ai/v0
+kind: ImagePolicy
+metadata:
+  name: sourceos-hammer-runner
+spec:
+  imageRef: quay.io/socios/sourceos-hammer-runner:dev
+  baseImage:
+    ref: registry.fedoraproject.org/fedora-minimal
+    digest: REPLACE_WITH_VERIFIED_DIGEST
+    requireDigest: true
+  requiredTools:
+    - hammer
+    - hammer_cli
+    - hammer_cli_foreman
+    - hammer_cli_katello
+    - jq
+  sbom:
+    required: true
+    format: spdx-json
+    outputPath: .workstation/reports/sbom/sourceos-hammer-runner.spdx.json
+  scan:
+    required: true
+    provider: grype
+    failOnSeverity: high
+    outputPath: .workstation/reports/scans/sourceos-hammer-runner-grype.json
+  signing:
+    required: false
+    provider: cosign
+    signaturePath: .workstation/reports/attest/sourceos-hammer-runner.sig
+  notes:
+    - This image is intended for Hammer CLI automation only.
+    - Do not bake credentials, activation keys, tokens, or server-specific configuration into the image.
+    - Replace baseImage.digest with a verified digest before release-grade use.

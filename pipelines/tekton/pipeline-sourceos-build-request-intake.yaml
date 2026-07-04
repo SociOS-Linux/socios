@@ -1,0 +1,76 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: sourceos-build-request-intake
+spec:
+  description: >-
+    Validate and materialize a SourceOS build request into a receipt that downstream
+    build, Katello, Smart Proxy, smoke, and agentplane evidence lanes can consume.
+  params:
+    - name: contentSpecRef
+      type: string
+    - name: buildRequestRef
+      type: string
+    - name: channel
+      type: string
+      default: dev
+    - name: architecture
+      type: string
+      default: x86_64
+    - name: requestedBy
+      type: string
+    - name: overlayRefs
+      type: string
+      default: ""
+    - name: enrollmentProfileRef
+      type: string
+      default: ""
+    - name: agentplaneBundleRef
+      type: string
+      default: ""
+    - name: localExecutionProtocolRef
+      type: string
+      default: urn:srcos:contract:workstation-contracts:m2-ipc:v1.0
+    - name: remoteExecutionProtocolRef
+      type: string
+      default: urn:srcos:protocol:tritrpc:v1
+    - name: katelloProduct
+      type: string
+      default: SourceOS Files
+    - name: katelloRepository
+      type: string
+      default: sourceos-live-iso
+  workspaces:
+    - name: source
+  tasks:
+    - name: materialize-sourceos-build-request
+      taskRef:
+        name: materialize-sourceos-build-request
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: contentSpecRef
+          value: $(params.contentSpecRef)
+        - name: buildRequestRef
+          value: $(params.buildRequestRef)
+        - name: channel
+          value: $(params.channel)
+        - name: architecture
+          value: $(params.architecture)
+        - name: requestedBy
+          value: $(params.requestedBy)
+        - name: overlayRefs
+          value: $(params.overlayRefs)
+        - name: enrollmentProfileRef
+          value: $(params.enrollmentProfileRef)
+        - name: agentplaneBundleRef
+          value: $(params.agentplaneBundleRef)
+        - name: localExecutionProtocolRef
+          value: $(params.localExecutionProtocolRef)
+        - name: remoteExecutionProtocolRef
+          value: $(params.remoteExecutionProtocolRef)
+        - name: katelloProduct
+          value: $(params.katelloProduct)
+        - name: katelloRepository
+          value: $(params.katelloRepository)
